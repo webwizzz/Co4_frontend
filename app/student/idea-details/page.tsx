@@ -184,67 +184,7 @@ export default function IdeaDetails() {
           return
         }
 
-        // The API may either return the project directly, or nest it inside `details` / `details.projects`.
-        let project: any = null
-
-        if (Array.isArray(data?.details)) {
-          // look for the project in details[].projects or details[] entries
-          for (const d of data.details) {
-            if (d._id === projectId) {
-              project = d
-              break
-            }
-            if (Array.isArray(d?.projects)) {
-              const found = d.projects.find((p: any) => p._id === projectId || p.id === projectId)
-              if (found) {
-                project = found
-                break
-              }
-            }
-          }
-        }
-
-        // If the API returned the project object directly
-        if (!project) {
-          if (data?._id === projectId || data?.id === projectId) project = data
-        }
-
-        // As a fallback, if nothing matched, but `data` contains reasonable fields, use it
-        if (!project && (data?.title || data?.description || data?.rawFiles)) {
-          project = data
-        }
-
-        if (!project) {
-          console.warn('Could not find project in response, falling back to dummy')
-          setIdea(dummyIdeaData)
-          return
-        }
-
-        // Map API shape to IdeaData
-        const mapped: IdeaData = {
-          id: project._id || project.id || String(projectId),
-          name: project.title || project.name || 'Untitled',
-          description: project.description || project.desc || '',
-          tags: project.tags || project.tag || [],
-          rawFiles: Array.isArray(project.rawFiles)
-            ? project.rawFiles.map((f: any) => ({
-                id: f._id || f.publicId || f.name,
-                name: f.name || (f.url && f.url.split('/').pop()) || 'file',
-                type: f.type || (f.name ? f.name.split('.').pop() : undefined) || undefined,
-                size: f.size || undefined,
-                url: f.url || f.path || '',
-                uploadDate: f.uploadDate || f.createdAt || f.upload_date || undefined,
-              }))
-            : [],
-          formattedFile: project.formattedFile || null,
-          feedback: project.feedback || null,
-          comments: project.comments || [],
-          transcribe: Array.isArray(project.transcribe) ? project.transcribe : (project.transcribe ? [project.transcribe] : []),
-          mentorRemarks: project.mentorRemarks || { Score: 0, potentialCategory: 'Low' },
-          createdAt: project.createdAt || project.created_at || new Date().toISOString(),
-        }
-
-        setIdea(mapped)
+        setIdea(data.details || [])
       } catch (e) {
         console.error(e)
         setIdea(dummyIdeaData)
@@ -456,32 +396,6 @@ export default function IdeaDetails() {
                           </div>
                         </div>
                         
-                        {/* Preview for different file types */}
-                        {fileType === 'image' && (
-                          <div className="mt-3">
-                            <img 
-                              src={file.url} 
-                              alt={file.name}
-                              className="w-full h-32 object-cover rounded-md"
-                            />
-                          </div>
-                        )}
-
-                        {fileType === 'video' && (
-                          <div className="mt-3">
-                            <div className="w-full h-32 bg-gray-100 rounded-md flex items-center justify-center">
-                              <Play className="h-8 w-8 text-gray-400" />
-                            </div>
-                          </div>
-                        )}
-                        
-                        {fileType === 'audio' && (
-                          <div className="mt-3">
-                            <div className="w-full h-16 bg-gray-100 rounded-md flex items-center justify-center">
-                              <Volume2 className="h-6 w-6 text-gray-400" />
-                            </div>
-                          </div>
-                        )}
                       </div>
                     ))}
                   </div>
