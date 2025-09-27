@@ -48,6 +48,8 @@ export default function LoginPage() {
       // Redirect based on role
       if (user.role === "student") {
         router.push("/student")
+      }else if (user.role === "mentor") {
+        router.push("/mentor")
       } else {
         // default fallback
         router.push("/")
