@@ -1,9 +1,5 @@
-import React from 'react'
+import { StudentDashboard } from "./student/StudentDashboard"
 
-const page = () => {
-  return (
-    <div>page</div>
-  )
+export default function Home() {
+  return <StudentDashboard />
 }
-
-export default page

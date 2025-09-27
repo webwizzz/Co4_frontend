@@ -34,3 +34,27 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Student idea submission / file upload
+
+This project includes a student dashboard UI at `app/student/StudentDashboard.tsx` where students can upload multiple files (video, audio, images, Word/PDF/text documents). A server API handler is available at `pages/api/upload.ts` which uses `formidable` to parse multipart form data and saves uploaded files to an `uploads/` directory in the project root.
+
+To run locally:
+
+1. Install dependencies:
+
+```bash
+npm install
+```
+
+2. Start the dev server:
+
+```bash
+npm run dev
+```
+
+3. Open `http://localhost:3000/student` and try uploading files.
+
+Notes:
+- Uploaded files are saved to `./uploads/` with timestamped filenames.
+- If you prefer the Next.js app-router API approach, you can adapt the handler in `app/api` instead of `pages/api` and use a streaming parser like `busboy`.
