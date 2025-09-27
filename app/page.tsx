@@ -1,5 +1,5 @@
-import { StudentDashboard } from "./student/StudentDashboard"
+import MentorDashboard from "./mentor/page"
 
 export default function Home() {
-  return <StudentDashboard />
+  return <MentorDashboard />
 }
