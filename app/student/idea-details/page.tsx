@@ -1,22 +1,17 @@
 "use client"
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Textarea } from "@/components/ui/textarea"
 import {
     Archive,
     ArrowLeft,
-    Download,
     Eye,
     FileText,
     FolderOpen,
     ImageIcon,
-    MessageCircle,
     Music,
     Play,
-    Share2,
     Star,
     Tag,
     Video,
@@ -68,6 +63,8 @@ interface FeedbackImprovement {
 
 interface FeedbackSchema {
   submission_id?: string
+  research_assignments?: string[]
+  questions_to_answer?: string[]
   feedback_timestamp?: string
   current_strength_level?: string
   overall_completeness?: number
@@ -75,6 +72,7 @@ interface FeedbackSchema {
   medium_priority_improvements?: FeedbackImprovement[]
   low_priority_improvements?: FeedbackImprovement[]
   next_steps_this_week?: string[]
+  what_youre_doing_well?: string[]
 }
 
 interface IdeaData {
@@ -441,14 +439,14 @@ export default function IdeaDetails() {
                       >
                         <div className="flex items-start gap-3">
                           <div className="p-2 bg-blue-50 rounded-lg">
-                            {getFileIcon(file.type)}
+                            {file.type && getFileIcon(file.type)}
                           </div>
                           <div className="flex-1 min-w-0">
                             <h4 className="font-medium text-sm truncate" title={file.name}>
                               {file.name}
                             </h4>
                             <p className="text-xs text-gray-400 mt-1">
-                              Uploaded {file.uploadDate.slice(0, 10)}
+                              Uploaded {file.uploadDate && file.uploadDate.slice(0, 10)}
                             </p>
                           </div>
                           <div className="flex items-center gap-1">
@@ -597,7 +595,7 @@ export default function IdeaDetails() {
                       <div className="text-sm text-gray-600">Overall Score</div>
                     </div>
                     <div className="text-center p-4 bg-gray-50 rounded-lg">
-                      <Badge className={`text-sm ${getPotentialCategoryColor(idea.mentorRemarks.potentialCategory)}`}>
+                      <Badge className={`text-sm ${idea.mentorRemarks.potentialCategory && getPotentialCategoryColor(idea.mentorRemarks.potentialCategory)}`}>
                         {idea.mentorRemarks.potentialCategory} Potential
                       </Badge>
                       <div className="text-sm text-gray-600 mt-1">Assessment</div>
