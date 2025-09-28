@@ -163,13 +163,13 @@ const PotentialIdeas = () => {
                             </span>
                             <div className="flex gap-4 mt-2 text-xs">
                               <span className="bg-gray-100 px-2 py-0.5 rounded text-gray-700">
-                                LLM Rating:{" "}
+                                LLM Rating: {" "}
                                 <span className="font-bold">
                                   {ratings[idea.id]?.llm ?? "-"} / 10
                                 </span>
                               </span>
                               <span className="bg-gray-100 px-2 py-0.5 rounded text-gray-700">
-                                Mentor Rating:{" "}
+                                Mentor Rating: {" "}
                                 <span className="font-bold">
                                   {ratings[idea.id]?.mentor ?? "-"} / 10
                                 </span>
