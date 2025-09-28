@@ -1,37 +1,76 @@
 "use client"
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Textarea } from "@/components/ui/textarea"
 import {
-    Archive,
-    ArrowLeft,
-    Download,
-    Eye,
-    FileText,
-    FolderOpen,
-    ImageIcon,
-    MessageCircle,
-    Music,
-    Play,
-    Share2,
-    Star,
-    Tag,
-    Video,
-    Volume2
+  Archive,
+  ArrowLeft,
+  Eye,
+  FileText,
+  FolderOpen,
+  ImageIcon,
+  Music,
+  Star,
+  Tag,
+  Video
 } from "lucide-react"
-import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { useEffect, useState } from "react"
 
 interface FileSchema {
-  id: string
+  id?: string
   name: string
-  type: string
-  size: number
+  type?: string
+  size?: number
   url: string
-  uploadDate: Date
+  uploadDate?: string
+}
+
+interface MentorRemarks {
+  Score?: number
+  potentialCategory?: 'High' | 'Medium' | 'Low'
+}
+
+interface FormattedFile {
+  title?: string | null
+  tagline?: string | null
+  vision?: string | null
+  mission?: string | null
+  language?: string | null
+  stage?: string | null
+  summary?: string | null
+  problem_and_customer?: string | null
+  solution_and_features?: string | null
+  market_and_competitors?: string | null
+  channels_and_revenue?: string | null
+  operations_and_team?: string | null
+  traction_and_funding?: string | null
+  risks_and_mitigation?: string | null
+  social_and_environmental_impact?: string | null
+}
+
+interface FeedbackImprovement {
+  section?: string
+  priority?: string
+  current_issue?: string
+  specific_action?: string
+  why_important?: string
+  resources_needed?: string | null
+}
+
+interface FeedbackSchema {
+  submission_id?: string
+  research_assignments?: string[]
+  questions_to_answer?: string[]
+  feedback_timestamp?: string
+  current_strength_level?: string
+  overall_completeness?: number
+  high_priority_improvements?: FeedbackImprovement[]
+  medium_priority_improvements?: FeedbackImprovement[]
+  low_priority_improvements?: FeedbackImprovement[]
+  next_steps_this_week?: string[]
+  what_youre_doing_well?: string[]
 }
 
 interface IdeaData {
@@ -40,114 +79,31 @@ interface IdeaData {
   description: string
   tags: string[]
   rawFiles: FileSchema[]
-  formattedFile: {
-    summary?: string
-    keyPoints?: string[]
-    processedAt?: Date
-  }
-  feedback: {
-    likes: number
-    views: number
-    shares: number
-  }
+  formattedFile: FormattedFile | null
+  feedback: FeedbackSchema | null
   comments: string[]
-  transcribe: {
-    text?: string
-    confidence?: number
-    language?: string
-  }
-  mentorRemarks: {
-    Score: number
-    potentialCategory: 'High' | 'Medium' | 'Low'
-    feedback?: string
-    reviewedAt?: Date
-  }
-  submittedAt: Date
-  status: 'Under Review' | 'Approved' | 'Needs Revision' | 'Rejected'
+  transcribe: string[]
+  mentorRemarks: MentorRemarks
+  createdAt: string
 }
 
 // Dummy data for the idea
 const dummyIdeaData: IdeaData = {
   id: "idea-001",
   name: "AI-Powered Study Assistant for Students",
-  description: "An innovative mobile application that uses artificial intelligence to help students organize their study materials, create personalized learning schedules, and provide instant answers to academic questions. The app integrates with existing learning management systems and offers voice-to-text note-taking capabilities.",
+  description:
+    "An innovative mobile application that uses artificial intelligence to help students organize their study materials, create personalized learning schedules, and provide instant answers to academic questions.",
   tags: ["AI", "Education", "Mobile App", "Machine Learning", "Study Tools"],
-  rawFiles: [
-    {
-      id: "file-001",
-      name: "business-plan-presentation.pdf",
-      type: "application/pdf",
-      size: 2048576,
-      url: "https://res.cloudinary.com/demo/business-plan-presentation.pdf",
-      uploadDate: new Date('2024-01-15')
-    },
-    {
-      id: "file-002", 
-      name: "market-research-video.mp4",
-      type: "video/mp4",
-      size: 15728640,
-      url: "https://res.cloudinary.com/demo/market-research-video.mp4",
-      uploadDate: new Date('2024-01-16')
-    },
-    {
-      id: "file-003",
-      name: "prototype-demo.mov",
-      type: "video/quicktime", 
-      size: 8388608,
-      url: "https://res.cloudinary.com/demo/prototype-demo.mov",
-      uploadDate: new Date('2024-01-17')
-    },
-    {
-      id: "file-004",
-      name: "user-interviews-audio.mp3",
-      type: "audio/mpeg",
-      size: 5242880,
-      url: "https://res.cloudinary.com/demo/user-interviews-audio.mp3",
-      uploadDate: new Date('2024-01-18')
-    },
-    {
-      id: "file-005",
-      name: "handwritten-notes.jpg",
-      type: "image/jpeg",
-      size: 1024000,
-      url: "https://res.cloudinary.com/demo/handwritten-notes.jpg",
-      uploadDate: new Date('2024-01-19')
-    }
-  ],
-  formattedFile: {
-    summary: "A comprehensive business plan for an AI-powered study assistant targeting college students. The solution addresses key pain points in academic organization and learning efficiency.",
-    keyPoints: [
-      "Market size: $8.2B educational technology market",
-      "Target audience: 18-25 year old college students",
-      "Revenue model: Freemium with premium features",
-      "Key differentiator: Voice-to-text and AI personalization"
-    ],
-    processedAt: new Date('2024-01-20')
-  },
-  feedback: {
-    likes: 47,
-    views: 234,
-    shares: 12
-  },
-  comments: [
-    "This is a brilliant idea! I would definitely use this app during my studies.",
-    "Have you considered integration with popular note-taking apps like Notion?",
-    "The AI component sounds promising. What's your approach to data privacy?",
-    "Great presentation! The market research seems thorough."
-  ],
-  transcribe: {
-    text: "So in our user interviews, we found that 87% of students struggle with organizing their study materials across different subjects. They often lose track of important notes and deadlines. Our AI assistant would solve this by automatically categorizing content and sending smart reminders.",
-    confidence: 0.94,
-    language: "en-US"
-  },
+  rawFiles: [],
+  formattedFile: null,
+  feedback: null,
+  comments: [],
+  transcribe: [],
   mentorRemarks: {
     Score: 8.5,
     potentialCategory: 'High',
-    feedback: "Excellent market research and clear value proposition. The team shows strong technical understanding. Consider focusing on MVP features first before expanding to advanced AI capabilities.",
-    reviewedAt: new Date('2024-01-25')
   },
-  submittedAt: new Date('2024-01-14'),
-  status: 'Approved'
+  createdAt: '2024-01-14',
 }
 
 const fileTypeIcons = {
@@ -184,21 +140,116 @@ const getPotentialCategoryColor = (category: string) => {
   }
 }
 
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'Approved': return 'bg-green-100 text-green-800 border-green-200'
-    case 'Under Review': return 'bg-blue-100 text-blue-800 border-blue-200'
-    case 'Needs Revision': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
-    case 'Rejected': return 'bg-red-100 text-red-800 border-red-200'
-    default: return 'bg-gray-100 text-gray-800 border-gray-200'
-  }
-}
+const ToggleSection = ({ title, children }: { title: string; children: React.ReactNode }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="border rounded-lg mb-4">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full text-left px-4 py-2 bg-gray-100 hover:bg-gray-200 font-semibold"
+      >
+        {title}
+      </button>
+      {isOpen && <div className="p-4">{children}</div>}
+    </div>
+  );
+};
 
 export default function IdeaDetails() {
   const router = useRouter()
-  const [idea] = useState<IdeaData>(dummyIdeaData)
+  const searchParams = useSearchParams()
+  const projectId = searchParams?.get('projectId')
+
+  const [idea, setIdea] = useState<IdeaData | null>(null)
   const [activeTab, setActiveTab] = useState<'overview' | 'files' | 'feedback' | 'mentor'>('overview')
   const [newComment, setNewComment] = useState('')
+  const [feedbackLoading, setFeedbackLoading] = useState(false)
+  const [feedbackError, setFeedbackError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!projectId) return
+
+    async function fetchProject() {
+      try {
+        const token = localStorage.getItem('token')
+        const res = await fetch(`http://localhost:8000/api/student/project/${projectId}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        })
+        const data = await res.json()
+        console.log(data)
+        if (!res.ok) {
+          console.error('Failed to fetch project', data)
+          setIdea(dummyIdeaData)
+          return
+        }
+
+        setIdea(data.details || [])
+      } catch (e) {
+        console.error(e)
+        setIdea(dummyIdeaData)
+      }
+    }
+
+    fetchProject()
+  }, [projectId])
+
+  // Helper to fetch feedback for a given project id (or fallback to idea.id)
+  async function fetchFeedbackForProject(pid?: string) {
+    const idToUse = pid || projectId || idea?.id
+    console.log('Fetching feedback for project id:', idToUse)
+    
+    if (!idToUse) {
+      setFeedbackError('No project id available to fetch feedback')
+      return
+    }
+
+    try {
+      setFeedbackError(null)
+      setFeedbackLoading(true)
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+      const res = await fetch(`http://localhost:8000/api/student/feedback/${idToUse}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      })
+      if (!res.ok) {
+        const txt = await res.text()
+        throw new Error(txt || `Failed to fetch feedback: ${res.status}`)
+      }
+      const data = await res.json()
+      const fb = data.feedback ?? data
+      setIdea(prev => prev ? { ...prev, feedback: fb } : prev)
+    } catch (e: any) {
+      console.error('Error fetching feedback:', e)
+      setFeedbackError(e?.message || String(e))
+    } finally {
+      setFeedbackLoading(false)
+    }
+  }
+
+  // Normalize mentor comments which may be an array of strings or a JSON string
+  const normalizeMentorComments = (raw: any): { id: string; text: string }[] => {
+    if (!raw) return []
+    if (typeof raw === 'string') {
+      try {
+        const parsed = JSON.parse(raw)
+        return normalizeMentorComments(parsed)
+      } catch (e) {
+        return [{ id: `m_${Date.now()}`, text: raw }]
+      }
+    }
+    if (Array.isArray(raw)) {
+      return raw.map((item: any, idx: number) => ({ id: `m_${idx}_${Date.now()}`, text: String(item) }))
+    }
+    return []
+  }
+
+  if (!idea) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">Loading project...</div>
+      </div>
+    )
+  }
 
   const handleBack = () => {
     router.back()
@@ -209,17 +260,24 @@ export default function IdeaDetails() {
     window.open(file.url, '_blank')
   }
 
+  function getFileType (file: FileSchema) {
+    const fileType = file.name.split(".").pop();
+    return fileType || 'other'
+  }
+
+  const fileType = getFileType(idea.rawFiles[0])
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 w-screen">
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b sticky top-0 z-10">
-        <div className="container mx-auto px-6 py-4">
+      <header className="bg-white/80 backdrop-blur-sm border-b sticky top-0 z-10 w-full">
+        <div className="w-full max-w-full px-6 py-4">
           <div className="flex items-center gap-4">
             <Button 
               variant="ghost" 
               size="sm" 
               onClick={handleBack}
-              className="gap-2"
+              className="gap-2 cursor-pointer"
             >
               <ArrowLeft className="h-4 w-4" />
               Back to Dashboard
@@ -227,11 +285,8 @@ export default function IdeaDetails() {
             <div className="flex-1">
               <h1 className="text-xl font-semibold text-gray-900">{idea.name}</h1>
               <div className="flex items-center gap-2 mt-1">
-                <Badge className={`text-xs ${getStatusColor(idea.status)}`}>
-                  {idea.status}
-                </Badge>
                 <span className="text-sm text-gray-500">
-                  Submitted {idea.submittedAt.toLocaleDateString()}
+                  Date: {idea.createdAt.slice(0, 10)}
                 </span>
               </div>
             </div>
@@ -239,22 +294,21 @@ export default function IdeaDetails() {
         </div>
       </header>
 
-      <div className="container mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
+      <div className="w-full px-2 sm:px-6 py-8 max-w-full mx-auto">
+        {/* Main Content - now full width */}
+        <div className="space-y-6">
             {/* Tab Navigation */}
             <div className="flex space-x-1 bg-white p-1 rounded-lg shadow-sm">
               {[
                 { id: 'overview', label: 'Overview' },
                 { id: 'files', label: 'Uploaded Files' },
-                { id: 'feedback', label: 'Community Feedback' },
+                { id: 'feedback', label: 'Feedback' },
                 { id: 'mentor', label: 'Mentor Review' }
               ].map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors ${
+                  className={`flex-1 cursor-pointer py-2 px-4 text-sm font-medium rounded-md transition-colors ${
                     activeTab === tab.id
                       ? 'bg-blue-100 text-blue-700'
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
@@ -292,34 +346,98 @@ export default function IdeaDetails() {
                     </div>
                   </div>
 
-                  {idea.formattedFile.summary && (
+                  {idea.formattedFile && (
                     <div>
                       <h3 className="font-semibold mb-2">AI-Generated Summary</h3>
-                      <div className="bg-blue-50 p-4 rounded-lg">
-                        <p className="text-sm text-blue-900">{idea.formattedFile.summary}</p>
-                        {idea.formattedFile.keyPoints && (
-                          <div className="mt-3">
-                            <h4 className="font-medium text-blue-900 mb-2">Key Points:</h4>
-                            <ul className="list-disc list-inside space-y-1 text-sm text-blue-800">
-                              {idea.formattedFile.keyPoints.map((point, index) => (
-                                <li key={index}>{point}</li>
-                              ))}
-                            </ul>
-                          </div>
+                      <div className="bg-blue-50 p-4 rounded-lg overflow-y-auto">
+                        {idea.formattedFile.title && (
+                          <p className="text-sm text-blue-900 font-medium">{idea.formattedFile.title}</p>
                         )}
+                        {idea.formattedFile.tagline && (
+                          <p className="text-sm text-blue-800 italic">{idea.formattedFile.tagline}</p>
+                        )}
+                        {idea.formattedFile.language && (
+                          <p className="text-sm text-blue-700">Language: {idea.formattedFile.language}</p>
+                        )}
+                        {idea.formattedFile.stage && (
+                          <p className="text-sm text-blue-700">Stage: {idea.formattedFile.stage}</p>
+                        )}
+                        {idea.formattedFile.vision && (
+                          <p className="text-sm text-blue-700">Vision: {idea.formattedFile.vision}</p>
+                        )}
+                        {idea.formattedFile.mission && (
+                          <p className="text-sm text-blue-700">Mission: {idea.formattedFile.mission}</p>
+                        )}
+                        {idea.formattedFile.summary && (
+                          <div className="mt-2 text-sm text-blue-900">{idea.formattedFile.summary}</div>
+                        )}
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                          {idea.formattedFile.problem_and_customer && (
+                            <div className="bg-white p-3 rounded">
+                              <h4 className="text-xs font-semibold mb-1">Problem & Customers</h4>
+                              <div className="text-sm text-blue-900">{idea.formattedFile.problem_and_customer}</div>
+                            </div>
+                          )}
+
+                          {idea.formattedFile.solution_and_features && (
+                            <div className="bg-white p-3 rounded">
+                              <h4 className="text-xs font-semibold mb-1">Solution & Features</h4>
+                              <div className="text-sm text-blue-900">{idea.formattedFile.solution_and_features}</div>
+                            </div>
+                          )}
+
+                          {idea.formattedFile.market_and_competitors && (
+                            <div className="bg-white p-3 rounded">
+                              <h4 className="text-xs font-semibold mb-1">Market & Competitors</h4>
+                              <div className="text-sm text-blue-900">{idea.formattedFile.market_and_competitors}</div>
+                            </div>
+                          )}
+
+                          {idea.formattedFile.channels_and_revenue && (
+                            <div className="bg-white p-3 rounded">
+                              <h4 className="text-xs font-semibold mb-1">Channels & Revenue</h4>
+                              <div className="text-sm text-blue-900">{idea.formattedFile.channels_and_revenue}</div>
+                            </div>
+                          )}
+
+                          {idea.formattedFile.operations_and_team && (
+                            <div className="bg-white p-3 rounded">
+                              <h4 className="text-xs font-semibold mb-1">Operations & Team</h4>
+                              <div className="text-sm text-blue-900">{idea.formattedFile.operations_and_team}</div>
+                            </div>
+                          )}
+
+                          {idea.formattedFile.traction_and_funding && (
+                            <div className="bg-white p-3 rounded">
+                              <h4 className="text-xs font-semibold mb-1">Traction & Funding</h4>
+                              <div className="text-sm text-blue-900">{idea.formattedFile.traction_and_funding}</div>
+                            </div>
+                          )}
+
+                          {idea.formattedFile.risks_and_mitigation && (
+                            <div className="bg-white p-3 rounded">
+                              <h4 className="text-xs font-semibold mb-1">Risks & Mitigation</h4>
+                              <div className="text-sm text-blue-900">{idea.formattedFile.risks_and_mitigation}</div>
+                            </div>
+                          )}
+
+                          {idea.formattedFile.social_and_environmental_impact && (
+                            <div className="bg-white p-3 rounded">
+                              <h4 className="text-xs font-semibold mb-1">Social & Environmental Impact</h4>
+                              <div className="text-sm text-blue-900">{idea.formattedFile.social_and_environmental_impact}</div>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   )}
 
-                  {idea.transcribe.text && (
+                  {idea.transcribe && (
                     <div>
-                      <h3 className="font-semibold mb-2">Audio Transcription</h3>
+                      <h3 className="font-semibold mb-2">Transcription</h3>
                       <div className="bg-gray-50 p-4 rounded-lg">
-                        <p className="text-sm text-gray-700 italic">"{idea.transcribe.text}"</p>
-                        <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
-                          <span>Confidence: {Math.round((idea.transcribe.confidence || 0) * 100)}%</span>
-                          <span>Language: {idea.transcribe.language}</span>
-                        </div>
+                        <p className="text-sm text-gray-700 italic">"{idea.transcribe }</p>
                       </div>
                     </div>
                   )}
@@ -348,55 +466,23 @@ export default function IdeaDetails() {
                       >
                         <div className="flex items-start gap-3">
                           <div className="p-2 bg-blue-50 rounded-lg">
-                            {getFileIcon(file.type)}
+                            {file.type && getFileIcon(file.type)}
                           </div>
                           <div className="flex-1 min-w-0">
                             <h4 className="font-medium text-sm truncate" title={file.name}>
                               {file.name}
                             </h4>
-                            <p className="text-xs text-gray-500 mt-1">
-                              {formatFileSize(file.size)} • {file.type}
-                            </p>
                             <p className="text-xs text-gray-400 mt-1">
-                              Uploaded {file.uploadDate.toLocaleDateString()}
+                              Uploaded {file.uploadDate && file.uploadDate.slice(0, 10)}
                             </p>
                           </div>
                           <div className="flex items-center gap-1">
                             <Button variant="ghost" size="sm">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm">
-                              <Download className="h-4 w-4" />
+                              <Eye className="h-4 w-4 cursor-pointer" />
                             </Button>
                           </div>
                         </div>
                         
-                        {/* Preview for different file types */}
-                        {file.type.startsWith('image/') && (
-                          <div className="mt-3">
-                            <img 
-                              src={file.url} 
-                              alt={file.name}
-                              className="w-full h-32 object-cover rounded-md"
-                            />
-                          </div>
-                        )}
-                        
-                        {file.type.startsWith('video/') && (
-                          <div className="mt-3">
-                            <div className="w-full h-32 bg-gray-100 rounded-md flex items-center justify-center">
-                              <Play className="h-8 w-8 text-gray-400" />
-                            </div>
-                          </div>
-                        )}
-                        
-                        {file.type.startsWith('audio/') && (
-                          <div className="mt-3">
-                            <div className="w-full h-16 bg-gray-100 rounded-md flex items-center justify-center">
-                              <Volume2 className="h-6 w-6 text-gray-400" />
-                            </div>
-                          </div>
-                        )}
                       </div>
                     ))}
                   </div>
@@ -406,57 +492,100 @@ export default function IdeaDetails() {
 
             {activeTab === 'feedback' && (
               <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <MessageCircle className="h-5 w-5" />
-                    Community Feedback
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-blue-600">{idea.feedback.likes}</div>
-                      <div className="text-sm text-gray-500">Likes</div>
+                <CardContent className="space-y-4 mt-2">
+                  {/* Show Get Feedback button when no feedback is present */}
+                  {!idea.feedback && (
+                    <div className="mb-4">
+                      <Button onClick={() => fetchFeedbackForProject()} disabled={feedbackLoading}>
+                        {feedbackLoading ? 'Fetching…' : 'Get Feedback'}
+                      </Button>
+                      {feedbackError && <div className="text-sm text-red-600 mt-2">{feedbackError}</div>}
                     </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-green-600">{idea.feedback.views}</div>
-                      <div className="text-sm text-gray-500">Views</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-purple-600">{idea.feedback.shares}</div>
-                      <div className="text-sm text-gray-500">Shares</div>
+                  )}
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-sm text-gray-600">Strength</div>
+                        <div className="text-lg font-medium">{idea.feedback?.current_strength_level || 'Unknown'}</div>
+                      </div>
+                      <div>
+                        <div className="text-sm text-gray-600">Completeness</div>
+                        <div className="text-lg font-medium">{idea.feedback?.overall_completeness ?? 0}%</div>
+                      </div>
+                      <div>
+                        <div className="text-sm text-gray-600">Submitted</div>
+                        <div className="text-sm">{idea.feedback?.feedback_timestamp ? new Date(idea.feedback.feedback_timestamp).toLocaleString() : '-'}</div>
+                      </div>
                     </div>
                   </div>
 
-                  <div>
-                    <h3 className="font-semibold mb-3">Comments ({idea.comments.length})</h3>
-                    <div className="space-y-3">
-                      {idea.comments.map((comment, index) => (
-                        <div key={index} className="flex gap-3 p-3 bg-white border rounded-lg">
-                          <Avatar className="h-8 w-8">
-                            <AvatarFallback>U{index + 1}</AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="font-medium text-sm">Student {index + 1}</span>
-                              <span className="text-xs text-gray-500">2 hours ago</span>
-                            </div>
-                            <p className="text-sm text-gray-700">{comment}</p>
+                  <ToggleSection title="High Priority Improvements">
+                    {idea.feedback?.high_priority_improvements?.length ? (
+                      idea.feedback.high_priority_improvements.map((imp, idx) => (
+                        <div key={idx} className="p-3 bg-white border rounded-lg mb-2">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="text-sm font-semibold">{imp.section}</div>
+                            <div className="text-xs text-red-600 uppercase">{imp.priority}</div>
                           </div>
+                          {imp.current_issue && <div className="text-sm text-gray-700 mb-2"><strong>Issue:</strong> {imp.current_issue}</div>}
+                          {imp.specific_action && <div className="text-sm text-gray-700 mb-2"><strong>Action:</strong> {imp.specific_action}</div>}
+                          {imp.why_important && <div className="text-sm text-gray-600"><em>{imp.why_important}</em></div>}
                         </div>
-                      ))}
-                    </div>
+                      ))
+                    ) : (
+                      <div className="text-sm text-gray-500">No high priority improvements provided.</div>
+                    )}
+                  </ToggleSection>
 
-                    <div className="mt-4">
-                      <Textarea
-                        placeholder="Add a comment..."
-                        value={newComment}
-                        onChange={(e) => setNewComment(e.target.value)}
-                        className="mb-2"
-                      />
-                      <Button size="sm">Post Comment</Button>
-                    </div>
-                  </div>
+                  <ToggleSection title="Medium Priority Improvements">
+                    {idea.feedback?.medium_priority_improvements?.length ? (
+                      idea.feedback.medium_priority_improvements.map((imp, idx) => (
+                        <div key={idx} className="p-3 bg-white border rounded-lg mb-2">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="text-sm font-semibold">{imp.section}</div>
+                            <div className="text-xs text-yellow-600 uppercase">{imp.priority}</div>
+                          </div>
+                          {imp.current_issue && <div className="text-sm text-gray-700 mb-2"><strong>Issue:</strong> {imp.current_issue}</div>}
+                          {imp.specific_action && <div className="text-sm text-gray-700 mb-2"><strong>Action:</strong> {imp.specific_action}</div>}
+                          {imp.why_important && <div className="text-sm text-gray-600"><em>{imp.why_important}</em></div>}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-sm text-gray-500">No medium priority improvements provided.</div>
+                    )}
+                  </ToggleSection>
+
+                  <ToggleSection title="Next Steps This Week">
+                    <ul className="list-disc pl-5">
+                      {idea.feedback?.next_steps_this_week?.map((step, idx) => (
+                        <li key={idx} className="text-sm text-gray-700">{step}</li>
+                      ))}
+                    </ul>
+                  </ToggleSection>
+
+                  <ToggleSection title="Research Assignments">
+                    <ul className="list-disc pl-5">
+                      {idea.feedback?.research_assignments?.map((assignment, idx) => (
+                        <li key={idx} className="text-sm text-gray-700">{assignment}</li>
+                      ))}
+                    </ul>
+                  </ToggleSection>
+
+                  <ToggleSection title="Questions to Answer">
+                    <ul className="list-disc pl-5">
+                      {idea.feedback?.questions_to_answer?.map((question, idx) => (
+                        <li key={idx} className="text-sm text-gray-700">{question}</li>
+                      ))}
+                    </ul>
+                  </ToggleSection>
+
+                  <ToggleSection title="What You're Doing Well">
+                    <ul className="list-disc pl-5">
+                      {idea.feedback?.what_youre_doing_well?.map((point, idx) => (
+                        <li key={idx} className="text-sm text-gray-700">{point}</li>
+                      ))}
+                    </ul>
+                  </ToggleSection>
                 </CardContent>
               </Card>
             )}
@@ -472,124 +601,43 @@ export default function IdeaDetails() {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="text-center p-4 bg-blue-50 rounded-lg">
-                      <div className="text-3xl font-bold text-blue-600">{idea.mentorRemarks.Score}/10</div>
+                      <div className="text-3xl font-bold text-blue-600">{idea.mentorRemarks?.Score ?? 0}/10</div>
                       <div className="text-sm text-gray-600">Overall Score</div>
                     </div>
                     <div className="text-center p-4 bg-gray-50 rounded-lg">
-                      <Badge className={`text-sm ${getPotentialCategoryColor(idea.mentorRemarks.potentialCategory)}`}>
-                        {idea.mentorRemarks.potentialCategory} Potential
+                      <Badge className={`text-sm ${idea.mentorRemarks?.potentialCategory && getPotentialCategoryColor(idea.mentorRemarks.potentialCategory)}`}>
+                        {idea.mentorRemarks?.potentialCategory ?? 'No'} Potential
                       </Badge>
                       <div className="text-sm text-gray-600 mt-1">Assessment</div>
                     </div>
                   </div>
 
-                  {idea.mentorRemarks.feedback && (
-                    <div>
-                      <h3 className="font-semibold mb-2">Mentor Feedback</h3>
-                      <div className="bg-amber-50 border-l-4 border-amber-400 p-4">
-                        <p className="text-sm text-amber-800">{idea.mentorRemarks.feedback}</p>
-                        {idea.mentorRemarks.reviewedAt && (
-                          <p className="text-xs text-amber-600 mt-2">
-                            Reviewed on {idea.mentorRemarks.reviewedAt.toLocaleDateString()}
-                          </p>
+                    {/* Mentor comments (may come as array of strings) */}
+                    <div className="mt-4">
+                      <h4 className="text-sm font-semibold mb-2">Mentor Comments</h4>
+                      <div className="space-y-2">
+                        {normalizeMentorComments(idea.comments).length > 0 ? (
+                          normalizeMentorComments(idea.comments).map((c) => (
+                            <div key={c.id} className="p-3 bg-white border rounded-lg">
+                              <div className="text-sm text-gray-800">{c.text}</div>
+                              <div className="text-xs text-gray-500 mt-1">Mentor</div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-sm text-gray-500">No mentor comments yet.</div>
                         )}
                       </div>
                     </div>
-                  )}
 
-                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg">
-                    <h3 className="font-semibold text-blue-900 mb-2">Next Steps</h3>
-                    <ul className="text-sm text-blue-800 space-y-1">
-                      <li>• Schedule a follow-up meeting with your mentor</li>
-                      <li>• Work on the suggested improvements</li>
-                      <li>• Prepare for the next review cycle</li>
-                      <li>• Consider applying for startup incubation programs</li>
-                    </ul>
-                  </div>
+                  
                 </CardContent>
               </Card>
             )}
           </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Quick Stats</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Files Uploaded</span>
-                  <span className="font-semibold">{idea.rawFiles.length}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Total Views</span>
-                  <span className="font-semibold">{idea.feedback.views}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Comments</span>
-                  <span className="font-semibold">{idea.comments.length}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Mentor Score</span>
-                  <span className="font-semibold text-blue-600">{idea.mentorRemarks.Score}/10</span>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <Button className="w-full" variant="outline">
-                  <Share2 className="h-4 w-4 mr-2" />
-                  Share Idea
-                </Button>
-                <Button className="w-full" variant="outline">
-                  <Download className="h-4 w-4 mr-2" />
-                  Download Report
-                </Button>
-                <Button className="w-full" variant="outline">
-                  <MessageCircle className="h-4 w-4 mr-2" />
-                  Contact Mentor
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Timeline</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <div className="text-sm">
-                      <div className="font-medium">Approved</div>
-                      <div className="text-gray-500">{idea.mentorRemarks.reviewedAt?.toLocaleDateString()}</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    <div className="text-sm">
-                      <div className="font-medium">Under Review</div>
-                      <div className="text-gray-500">{idea.formattedFile.processedAt?.toLocaleDateString()}</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                    <div className="text-sm">
-                      <div className="font-medium">Submitted</div>
-                      <div className="text-gray-500">{idea.submittedAt.toLocaleDateString()}</div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          {/* Sidebar removed for full width layout */}
         </div>
       </div>
-    </div>
+
   )
 }

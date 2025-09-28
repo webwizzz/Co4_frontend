@@ -2,35 +2,29 @@
 
 import type React from "react"
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Progress } from "@/components/ui/progress"
 import { Textarea } from "@/components/ui/textarea"
+import axios from "axios"
 import {
-    Archive,
-    ArrowLeft,
-    BookOpen,
-    Calendar,
-    Download,
-    Eye,
-    FileText,
-    ImageIcon,
-    MoreVertical,
-    Music,
-    Plus,
-    Search,
-    Share2,
-    Trash2,
-    Upload,
-    Video,
+  Archive,
+  ArrowLeft,
+  BookOpen,
+  FileText,
+  ImageIcon,
+  Music,
+  Plus,
+  Search,
+  TrendingUp,
+  Upload,
+  User,
+  Video
 } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 interface UploadedFile {
   id: string
@@ -67,60 +61,80 @@ const fileTypeIcons = {
 }
 
 export function StudentDashboard() {
+  // Logout handler
+  const handleLogout = () => {
+    localStorage.clear()
+    router.push("/login")
+  }
   const router = useRouter()
-  const [files, setFiles] = useState<UploadedFile[]>([
+  // projects coming from backend
+  const [projects, setProjects] = useState<
     {
-      id: "1",
-      name: "EcoTech_Startup_Pitch.pdf",
-      type: "pdf",
-      size: 2048000,
-      uploadDate: new Date("2024-01-15"),
-      category: "startup",
-      description: "Revolutionary green technology startup idea for sustainable energy solutions",
-      tags: ["startup", "green-tech", "sustainability", "energy"],
-      status: "completed",
-    },
-    {
-      id: "2",
-      name: "Business_Model_Presentation.mp3",
-      type: "mp3",
-      size: 15728640,
-      uploadDate: new Date("2024-01-14"),
-      category: "startup",
-      description: "Audio pitch for a peer-to-peer learning platform connecting students globally",
-      tags: ["edtech", "platform", "peer-learning", "global"],
-      status: "completed",
-    },
-    {
-      id: "3",
-      name: "App_Wireframe_Design.jpg",
-      type: "jpg",
-      size: 1024000,
-      uploadDate: new Date("2024-01-13"),
-      category: "startup",
-      description: "Mobile app concept for local food waste reduction and community sharing",
-      tags: ["mobile-app", "food-waste", "community", "social-impact"],
-      status: "processing",
-      progress: 75,
-    },
-    {
-      id: "4",
-      name: "AI_Healthcare_Proposal.docx",
-      type: "docx",
-      size: 3072000,
-      uploadDate: new Date("2024-01-12"),
-      category: "startup",
-      description: "AI-powered healthcare assistant for remote patient monitoring and diagnosis",
-      tags: ["ai", "healthcare", "remote-monitoring", "diagnosis"],
-      status: "completed",
-    },
-  ])
-
+      _id: string
+      title: string
+      description: string
+      tags: string[]
+    }[]
+  >([])
+  // keep upload/file state for the upload area (previously had dummy data)
+  const [files, setFiles] = useState<UploadedFile[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [dragActive, setDragActive] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [description, setDescription] = useState("")
   const [tags, setTags] = useState("")
+  const [title, setTitle] = useState("")
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([])
   const [currentView, setCurrentView] = useState<"dashboard" | "upload">("dashboard")
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+  // fetch projects (extracted so createProject can refresh)
+  async function fetchProjects() {
+    setLoading(true)
+    setError(null)
+    const studentId = localStorage.getItem("_id")
+    try {
+      if (!studentId) {
+        setError("Student id not found in localStorage")
+        setLoading(false)
+        return
+      }
+
+      const token = localStorage.getItem("token")
+      console.log("Loading projects for studentId:", studentId)
+      const res = await axios.get(`http://localhost:8000/api/student/${studentId}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      })
+
+      const data = res.data
+      console.log("Fetched student data:", data)
+      if (res.status !== 200) {
+        setError(data?.message || "Failed to fetch projects")
+        setLoading(false)
+        return
+      }
+
+      // expected data.details.projects
+      const projectsFromApi = data?.details?.projects || []
+      // map to minimal shape
+      const mapped = projectsFromApi.map((p: any) => ({
+        _id: p._id,
+        title: p.title,
+        description: p.description,
+        tags: p.tags || [],
+      }))
+      setProjects(mapped)
+    } catch (e) {
+      setError((e as Error).message || "An error occurred")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchProjects()
+  }, [])
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault()
@@ -161,6 +175,8 @@ export function StudentDashboard() {
       }
 
       setFiles((prev) => [newFile, ...prev])
+      // keep the actual File object for upload
+      setSelectedFiles((prev) => [...prev, file])
 
       // Simulate upload progress
       const interval = setInterval(() => {
@@ -185,6 +201,63 @@ export function StudentDashboard() {
     setTags("")
   }
 
+  async function createProject() {
+    const studentId = localStorage.getItem("_id")
+    const token = localStorage.getItem("token")
+    if (!studentId) {
+      setError("Student id not found in localStorage")
+      return
+    }
+
+    if (!title) {
+      setError("Title is required")
+      return
+    }
+
+    try {
+      setLoading(true)
+      setError(null)
+      const form = new FormData()
+      form.append("studentId", studentId)
+      form.append("title", title)
+      form.append("description", description)
+      // tags optional - backend expects array
+      const tagsArray = tags
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean)
+      tagsArray.forEach((t) => form.append("tags", t))
+
+      // append files as 'files' so backend can read req.files
+      selectedFiles.forEach((f) => form.append("files", f))
+
+      const res = await axios.post("http://localhost:8000/api/student/create", form, {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          "Content-Type": "multipart/form-data",
+        },
+      })
+
+      if (res.status !== 200 && res.status !== 201) {
+        setError(res.data?.message || "Failed to create project")
+        setLoading(false)
+        return
+      }
+
+      // success - refresh projects and clear form
+      setTitle("")
+      setDescription("")
+      setTags("")
+      setSelectedFiles([])
+      setFiles([])
+      await fetchProjects()
+    } catch (e) {
+      setError((e as Error).message || "An error occurred while creating project")
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return "0 Bytes"
     const k = 1024
@@ -199,12 +272,12 @@ export function StudentDashboard() {
   }
 
   const handleIdeaClick = (fileId: string) => {
-    router.push('/student/idea-details')
+    router.push(`/student/idea-details?projectId=${fileId}`)
   }
 
-  const filteredFiles = files.filter(
+  const filteredFiles = projects.filter(
     (file) =>
-      file.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      file.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       file.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       file.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase())),
   )
@@ -213,18 +286,20 @@ export function StudentDashboard() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-6 py-4">
+        <div className="container mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               {currentView === "upload" && (
-                <Button variant="ghost" size="sm" onClick={() => setCurrentView("dashboard")} className="mr-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setCurrentView("dashboard")}
+                  className="mr-2 cursor-pointer"
+                >
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Back
                 </Button>
               )}
-              <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-                <Upload className="h-4 w-4 text-primary-foreground" />
-              </div>
               <div>
                 <h1 className="text-xl font-semibold text-balance">Student Ideas Hub</h1>
                 <p className="text-sm text-muted-foreground">
@@ -236,147 +311,155 @@ export function StudentDashboard() {
             </div>
             <div className="flex items-center gap-3">
               {currentView === "dashboard" && (
-                <div className="relative">
+                <div className="relative hidden sm:block">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search ideas..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 w-64"
+                    className="pl-10 w-48 lg:w-64"
                   />
                 </div>
               )}
-              <Avatar>
-                <AvatarImage src="/student-avatar.png" />
-                <AvatarFallback>ST</AvatarFallback>
-              </Avatar>
+              <User className="h-5 w-5" />
+              <Button variant="outline" size="sm" className="ml-2 bg-transparent" onClick={handleLogout}>
+                Logout
+              </Button>
             </div>
           </div>
+          {/* Mobile search */}
+          {currentView === "dashboard" && (
+            <div className="mt-4 sm:hidden">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search ideas..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 w-full"
+                />
+              </div>
+            </div>
+          )}
         </div>
       </header>
 
-      <div className="container mx-auto px-6 py-8">
+      <div className="container mx-auto px-4 sm:px-6 py-6 lg:py-8">
         {currentView === "dashboard" ? (
-          <div className="space-y-8">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-3xl font-bold text-balance">Entrepreneurship & Startup Ideas</h2>
-                <p className="text-muted-foreground text-pretty">
-                  Discover innovative business concepts and entrepreneurial ventures from students
-                </p>
-              </div>
-              <Button onClick={() => setCurrentView("upload")} size="lg" className="gap-2">
-                <Plus className="h-4 w-4" />
-                Submit Idea
-              </Button>
+          <div className="space-y-6 lg:space-y-8">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6">
+              {/* Main hero card - spans 3 columns on large screens */}
+              <Card className="lg:col-span-3 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-200 dark:border-blue-800">
+                <CardContent className="p-6 lg:p-8">
+                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                    <div className="space-y-2">
+                      <h2 className="text-2xl lg:text-3xl font-bold text-balance">Entrepreneurship & Startup Ideas</h2>
+                      <p className="text-muted-foreground text-pretty max-w-2xl">
+                        Discover innovative business concepts and entrepreneurial ventures from students across the
+                        globe
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() => setCurrentView("upload")}
+                      size="lg"
+                      className="gap-2 bg-blue-600 hover:bg-blue-700 text-white cursor-pointer shrink-0"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Submit Idea
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Stats card - spans 1 column */}
+              <Card className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border-green-200 dark:border-green-800">
+                <CardContent className="p-6 text-center">
+                  <div className="space-y-2">
+                    <TrendingUp className="h-8 w-8 text-green-600 mx-auto" />
+                    <div className="text-2xl font-bold text-green-700 dark:text-green-400">{filteredFiles.length}</div>
+                    <p className="text-sm text-green-600 dark:text-green-500 font-medium">Active Ideas</p>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
 
+            {/* Removed Innovation, Focus, Impact, Driven, Community, Powered, Learning, Focused cards as requested */}
+
             <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
-                {filteredFiles.map((file) => (
-                  <Card
-                    key={file.id}
-                    className="group hover:shadow-lg transition-all duration-200 hover:-translate-y-1 flex flex-col cursor-pointer"
-                    onClick={() => handleIdeaClick(file.id)}
-                  >
-                    <CardContent className="p-4 md:p-6 flex-1 flex flex-col">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <div className="p-2 rounded-lg bg-muted flex-shrink-0">{getFileIcon(file.type)}</div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-sm md:text-base leading-tight mb-1" title={file.name}>
-                              {file.name.replace(/\.[^/.]+$/, "").replace(/_/g, " ")}
-                            </h3>
-                            <p className="text-xs text-muted-foreground">{formatFileSize(file.size)}</p>
-                          </div>
-                        </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="opacity-0 group-hover:opacity-100 flex-shrink-0"
+              {filteredFiles.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 lg:gap-6 auto-rows-fr">
+                  {filteredFiles.map((file, index) => {
+                    const isLarge = index % 7 === 0 && index > 0 // Every 7th card (except first) is large
+                    const isMedium = index % 5 === 0 && !isLarge // Every 5th card is medium
+
+                    return (
+                      <Card
+                        key={file._id}
+                        className={`group hover:shadow-xl transition-all duration-300 hover:-translate-y-2 flex flex-col cursor-pointer hover:border-blue-300 dark:hover:border-blue-700 ${
+                          isLarge
+                            ? "sm:col-span-2 lg:col-span-2 xl:col-span-2 sm:row-span-2"
+                            : isMedium
+                              ? "lg:col-span-2 xl:col-span-1"
+                              : ""
+                        }`}
+                        onClick={() => handleIdeaClick(file._id)}
+                      >
+                        <CardContent className={`p-4 lg:p-6 flex-1 flex flex-col ${isLarge ? "lg:p-8" : ""}`}>
+                          <div className="mb-3">
+                            <h3
+                              className={`font-semibold leading-tight mb-2 text-balance ${
+                                isLarge ? "text-lg lg:text-xl" : "text-sm lg:text-base"
+                              }`}
+                              title={file.title}
                             >
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
-                              <Eye className="h-4 w-4 mr-2" />
-                              Preview
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Download className="h-4 w-4 mr-2" />
-                              Download
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Share2 className="h-4 w-4 mr-2" />
-                              Share
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive">
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-
-                      {file.status === "processing" && file.progress !== undefined && (
-                        <div className="mb-3">
-                          <div className="flex items-center justify-between text-xs mb-2">
-                            <span className="text-muted-foreground">Processing...</span>
-                            <span className="text-muted-foreground">{Math.round(file.progress)}%</span>
+                              {file.title}
+                            </h3>
+                            <p
+                              className={`text-muted-foreground text-pretty ${
+                                isLarge ? "text-sm lg:text-base line-clamp-4" : "text-xs lg:text-sm line-clamp-3"
+                              }`}
+                            >
+                              {file.description}
+                            </p>
                           </div>
-                          <Progress value={file.progress} className="h-2" />
-                        </div>
-                      )}
 
-                      {file.description && (
-                        <div className="flex-1 mb-3">
-                          <p className="text-xs md:text-sm text-muted-foreground line-clamp-3 leading-relaxed">
-                            {file.description}
-                          </p>
-                        </div>
-                      )}
-
-                      <div className="flex flex-col gap-2 mt-auto">
-                        <div className="flex items-center justify-between text-xs text-muted-foreground">
-                          <div className="flex items-center gap-1">
-                            <Calendar className="h-3 w-3 flex-shrink-0" />
-                            <span className="truncate">{file.uploadDate.toLocaleDateString()}</span>
-                          </div>
-                        </div>
-
-                        {file.tags.length > 0 && (
-                          <div className="flex flex-wrap gap-1">
-                            {file.tags.slice(0, 2).map((tag, index) => (
-                              <Badge key={index} variant="secondary" className="text-xs">
+                          <div className="flex flex-wrap gap-2 mt-auto">
+                            {file.tags.slice(0, isLarge ? 6 : 3).map((tag, idx) => (
+                              <Badge
+                                key={idx}
+                                variant="secondary"
+                                className={`${isLarge ? "text-xs lg:text-sm" : "text-xs"}`}
+                              >
                                 {tag}
                               </Badge>
                             ))}
-                            {file.tags.length > 2 && (
-                              <Badge variant="secondary" className="text-xs">
-                                +{file.tags.length - 2}
+                            {file.tags.length > (isLarge ? 6 : 3) && (
+                              <Badge variant="outline" className="text-xs">
+                                +{file.tags.length - (isLarge ? 6 : 3)}
                               </Badge>
                             )}
                           </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-
-              {filteredFiles.length === 0 && (
-                <Card>
-                  <CardContent className="p-12 text-center">
-                    <BookOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold mb-2">No ideas found</h3>
-                    <p className="text-muted-foreground mb-6">
-                      {searchQuery ? "Try adjusting your search terms" : "Be the first to share your creative idea!"}
+                        </CardContent>
+                      </Card>
+                    )
+                  })}
+                </div>
+              ) : (
+                <Card className="lg:col-span-full">
+                  <CardContent className="p-12 lg:p-16 text-center">
+                    <BookOpen className="h-16 w-16 lg:h-20 lg:w-20 text-muted-foreground mx-auto mb-6" />
+                    <h3 className="text-xl lg:text-2xl font-semibold mb-3">No ideas found</h3>
+                    <p className="text-muted-foreground mb-8 max-w-md mx-auto">
+                      {searchQuery
+                        ? "Try adjusting your search terms to find what you're looking for"
+                        : "Be the first to share your creative idea and inspire others!"}
                     </p>
                     {!searchQuery && (
-                      <Button onClick={() => setCurrentView("upload")} size="lg">
+                      <Button
+                        onClick={() => setCurrentView("upload")}
+                        size="lg"
+                        className="bg-blue-600 hover:bg-blue-700 text-white cursor-pointer"
+                      >
                         Submit Your First Idea
                       </Button>
                     )}
@@ -402,6 +485,33 @@ export function StudentDashboard() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
+                {/* Project metadata form */}
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
+                    <Label htmlFor="title">Title</Label>
+                    <Input
+                      id="title"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      placeholder="Project title"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="desc">Description</Label>
+                    <Textarea id="desc" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="tagsInput">Tags (comma separated)</Label>
+                    <Input
+                      id="tagsInput"
+                      value={tags}
+                      onChange={(e) => setTags(e.target.value)}
+                      placeholder="ent, startup"
+                    />
+                  </div>
+                </div>
                 <div
                   className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors ${
                     dragActive ? "border-primary bg-primary/5" : "border-muted-foreground/25 hover:border-primary/50"
@@ -416,41 +526,54 @@ export function StudentDashboard() {
                   <p className="text-muted-foreground mb-6">
                     Supports: PDF, DOC, TXT, JPG, PNG, MP3, MP4, ZIP and more
                   </p>
-                  <Input
+                  {/* native file input (hidden) + button trigger */}
+                  <input
+                    ref={(el) => {
+                      fileInputRef.current = el
+                    }}
+                    id="file-upload"
                     type="file"
                     multiple
                     className="hidden"
-                    id="file-upload"
                     onChange={(e) => e.target.files && handleFiles(e.target.files)}
                   />
-                  <Label htmlFor="file-upload">
-                    <Button size="lg" className="cursor-pointer">
-                      Choose Files
-                    </Button>
-                  </Label>
+                  <Button
+                    size="lg"
+                    className="cursor-pointer text-white bg-black hover:bg-black/90"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    Choose Files
+                  </Button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="description">Description (Optional)</Label>
-                    <Textarea
-                      id="description"
-                      placeholder="Describe your idea or content..."
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      rows={4}
-                    />
+                {/* Selected files preview */}
+                {selectedFiles.length > 0 && (
+                  <div className="mt-4">
+                    <h4 className="text-sm font-medium mb-2">Selected files</h4>
+                    <ul className="space-y-1 text-sm">
+                      {selectedFiles.map((f, idx) => (
+                        <li key={idx} className="flex items-center justify-between">
+                          <span className="truncate max-w-xs">{f.name}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="mt-2">
+                      <Button
+                        variant="ghost"
+                        className="cursor-pointer border border-black"
+                        size="sm"
+                        onClick={() => setSelectedFiles([])}
+                      >
+                        Clear files
+                      </Button>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="tags">Tags (Optional)</Label>
-                    <Input
-                      id="tags"
-                      placeholder="startup, innovation, business-idea"
-                      value={tags}
-                      onChange={(e) => setTags(e.target.value)}
-                    />
-                    <p className="text-xs text-muted-foreground">Separate tags with commas</p>
-                  </div>
+                )}
+
+                <div className="flex items-center gap-2">
+                  <Button onClick={createProject} disabled={loading} className="bg-black cursor-pointer text-white">
+                    {loading ? "Creating..." : "Create Project"}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
