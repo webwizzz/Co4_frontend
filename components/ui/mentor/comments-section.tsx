@@ -85,23 +85,6 @@ export default function CommentsSection({ comments, onAddComment }: CommentsSect
               .map((comment) => (
                 <div key={comment.id} className="p-4 border rounded-lg space-y-2">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <span className="font-medium text-sm">{comment.author}</span>
-                      <Badge variant="outline" className="text-xs">
-                        {comment.authorRole}
-                      </Badge>
-                      {comment.isVisible ? (
-                        <Badge variant="default" className="text-xs bg-green-100 text-green-800">
-                          <Eye className="h-3 w-3 mr-1" />
-                          Visible
-                        </Badge>
-                      ) : (
-                        <Badge variant="secondary" className="text-xs">
-                          <EyeOff className="h-3 w-3 mr-1" />
-                          Private
-                        </Badge>
-                      )}
-                    </div>
                     <span className="text-xs text-muted-foreground">{formatTimestamp(comment.timestamp)}</span>
                   </div>
                   <p className="text-sm leading-relaxed">{comment.text}</p>

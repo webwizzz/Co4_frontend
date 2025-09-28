@@ -14,6 +14,38 @@ interface StudentIdeasViewProps {
 }
 
 export default function StudentIdeasView({ student, ideas, onBack, onIdeaClick }: StudentIdeasViewProps) {
+  const handleIdeaClick = async (idea: Idea) => {
+    try {
+      // Make API call to fetch project details
+      const response = await fetch(`http://localhost:8000/api/mentor/project/${idea.id}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch idea details');
+      }
+
+      // Get the complete data from the response
+      const detailedIdea = await response.json();
+      console.log('Fetched detailed idea:', detailedIdea);
+
+      // Proceed with the idea click handler with the complete data
+      // Create a merged object that preserves the Idea interface structure
+      const mergedIdea: Idea = {
+        ...idea,
+        name: detailedIdea.title || idea.name,
+        description: detailedIdea.description || idea.description,
+        tags: detailedIdea.tags || idea.tags,
+        overview: detailedIdea.overview,
+        llmAnalysis: detailedIdea.llmAnalysis,
+        feasibilityAnalysis: detailedIdea.feasibility
+        // Add any other fields from detailedIdea that should be included
+      };
+      
+      onIdeaClick(mergedIdea);
+    } catch (error) {
+      console.error("Error fetching idea details:", error);
+    }
+  };
+
   const getPotentialColor = (category: string) => {
     switch (category) {
       case "High":
@@ -48,14 +80,16 @@ export default function StudentIdeasView({ student, ideas, onBack, onIdeaClick }
             <Card
               key={idea.id}
               className="cursor-pointer hover:shadow-lg transition-shadow duration-200"
-              onClick={() => onIdeaClick(idea)}
+              onClick={() => handleIdeaClick(idea)}
             >
               <CardHeader>
                 <div className="flex justify-between items-start mb-2">
                   <CardTitle className="text-lg line-clamp-2">{idea.name}</CardTitle>
-                  <Badge className={getPotentialColor(idea.mentorRemarks.potentialCategory)}>
-                    {idea.mentorRemarks.potentialCategory}
-                  </Badge>
+                  {idea.mentorRemarks && idea.mentorRemarks.potentialCategory && (
+                    <Badge className={getPotentialColor(idea.mentorRemarks.potentialCategory)}>
+                      {idea.mentorRemarks.potentialCategory}
+                    </Badge>
+                  )}
                 </div>
                 <CardDescription className="line-clamp-3">{idea.description}</CardDescription>
               </CardHeader>
@@ -63,38 +97,16 @@ export default function StudentIdeasView({ student, ideas, onBack, onIdeaClick }
                 <div className="space-y-3">
                   {/* Tags */}
                   <div className="flex flex-wrap gap-1">
-                    {idea.tags.slice(0, 3).map((tag, index) => (
+                    {(idea.tags || []).slice(0, 3).map((tag, index) => (
                       <Badge key={index} variant="outline" className="text-xs">
                         {tag}
                       </Badge>
                     ))}
-                    {idea.tags.length > 3 && (
+                    {(idea.tags || []).length > 3 && (
                       <Badge variant="outline" className="text-xs">
-                        +{idea.tags.length - 3}
+                        +{(idea.tags || []).length - 3}
                       </Badge>
                     )}
-                  </div>
-
-                  {/* Metrics */}
-                  <div className="flex justify-between text-sm text-muted-foreground">
-                    <div className="flex items-center">
-                      <Calendar className="h-3 w-3 mr-1" />
-                      {idea.submittedAt.toLocaleDateString()}
-                    </div>
-                    <div className="flex items-center">
-                      <span className="font-medium text-foreground">{idea.mentorRemarks.Score}/10</span>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-between text-sm text-muted-foreground">
-                    <div className="flex items-center">
-                      <FileText className="h-3 w-3 mr-1" />
-                      {idea.rawFiles.length} files
-                    </div>
-                    <div className="flex items-center">
-                      <MessageSquare className="h-3 w-3 mr-1" />
-                      {idea.comments.length} comments
-                    </div>
                   </div>
                 </div>
               </CardContent>

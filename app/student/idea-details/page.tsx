@@ -505,12 +505,12 @@ export default function IdeaDetails() {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="text-center p-4 bg-blue-50 rounded-lg">
-                      <div className="text-3xl font-bold text-blue-600">{idea.mentorRemarks.Score}/10</div>
+                      <div className="text-3xl font-bold text-blue-600">{idea.mentorRemarks?.Score ?? 0}/10</div>
                       <div className="text-sm text-gray-600">Overall Score</div>
                     </div>
                     <div className="text-center p-4 bg-gray-50 rounded-lg">
-                      <Badge className={`text-sm ${idea.mentorRemarks.potentialCategory && getPotentialCategoryColor(idea.mentorRemarks.potentialCategory)}`}>
-                        {idea.mentorRemarks.potentialCategory} Potential
+                      <Badge className={`text-sm ${idea.mentorRemarks?.potentialCategory && getPotentialCategoryColor(idea.mentorRemarks.potentialCategory)}`}>
+                        {idea.mentorRemarks?.potentialCategory ?? 'No'} Potential
                       </Badge>
                       <div className="text-sm text-gray-600 mt-1">Assessment</div>
                     </div>
@@ -531,11 +531,11 @@ export default function IdeaDetails() {
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Files Uploaded</span>
-                  <span className="font-semibold">{idea.rawFiles.length}</span>
+                  <span className="font-semibold">{idea.rawFiles?.length ?? 0}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Comments</span>
-                  <span className="font-semibold">{idea.comments.length}</span>
+                  <span className="font-semibold">{idea.comments?.length ?? 0}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Mentor Score</span>

@@ -23,10 +23,25 @@ export interface Idea {
     Score: number
     potentialCategory: "High" | "Medium" | "Low"
   }
-  submittedAt: Date
+  createdAt: String
   marketAnalysis?: MarketAnalysis
   llmAnalysis?: LLMAnalysis // Added LLM analysis field
   feasibilityAnalysis?: FeasibilityAnalysis // Added feasibility analysis field
+  // New overview field from API
+  overview?: {
+    title: string
+    description: string
+    tags: string[]
+    uploadedFiles: Array<{
+      name: string
+      url: string
+      publicId: string
+      uploadDate: string
+      _id: string
+    }>
+    transcribe: any[]
+    formatedFile: Record<string, any>
+  }
 }
 
 export interface FileData {
@@ -81,10 +96,7 @@ export interface LLMAnalysis {
 export interface Comment {
   id: string
   text: string
-  author: string
-  authorRole: "mentor" | "student"
   timestamp: Date
-  isVisible: boolean // whether students can see this comment
 }
 
 export interface FeasibilityAnalysis {
