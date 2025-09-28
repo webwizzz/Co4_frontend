@@ -4,18 +4,16 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
-    Archive,
-    ArrowLeft,
-    Eye,
-    FileText,
-    FolderOpen,
-    ImageIcon,
-    Music,
-    Play,
-    Star,
-    Tag,
-    Video,
-    Volume2
+  Archive,
+  ArrowLeft,
+  Eye,
+  FileText,
+  FolderOpen,
+  ImageIcon,
+  Music,
+  Star,
+  Tag,
+  Video
 } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useState } from "react"
@@ -219,10 +217,10 @@ export default function IdeaDetails() {
   const fileType = getFileType(idea.rawFiles[0])
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 w-screen">
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b sticky top-0 z-10">
-        <div className="container mx-auto px-6 py-4">
+      <header className="bg-white/80 backdrop-blur-sm border-b sticky top-0 z-10 w-full">
+        <div className="w-full max-w-full px-6 py-4">
           <div className="flex items-center gap-4">
             <Button 
               variant="ghost" 
@@ -236,7 +234,6 @@ export default function IdeaDetails() {
             <div className="flex-1">
               <h1 className="text-xl font-semibold text-gray-900">{idea.name}</h1>
               <div className="flex items-center gap-2 mt-1">
-                
                 <span className="text-sm text-gray-500">
                   Date: {idea.createdAt.slice(0, 10)}
                 </span>
@@ -246,10 +243,9 @@ export default function IdeaDetails() {
         </div>
       </header>
 
-      <div className="container mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
+      <div className="w-full px-2 sm:px-6 py-8 max-w-full mx-auto">
+        {/* Main Content - now full width */}
+        <div className="space-y-6">
             {/* Tab Navigation */}
             <div className="flex space-x-1 bg-white p-1 rounded-lg shadow-sm">
               {[
@@ -309,6 +305,18 @@ export default function IdeaDetails() {
                         {idea.formattedFile.tagline && (
                           <p className="text-sm text-blue-800 italic">{idea.formattedFile.tagline}</p>
                         )}
+                        {idea.formattedFile.language && (
+                          <p className="text-sm text-blue-700">Language: {idea.formattedFile.language}</p>
+                        )}
+                        {idea.formattedFile.stage && (
+                          <p className="text-sm text-blue-700">Stage: {idea.formattedFile.stage}</p>
+                        )}
+                        {idea.formattedFile.vision && (
+                          <p className="text-sm text-blue-700">Vision: {idea.formattedFile.vision}</p>
+                        )}
+                        {idea.formattedFile.mission && (
+                          <p className="text-sm text-blue-700">Mission: {idea.formattedFile.mission}</p>
+                        )}
                         {idea.formattedFile.summary && (
                           <div className="mt-2 text-sm text-blue-900">{idea.formattedFile.summary}</div>
                         )}
@@ -339,6 +347,34 @@ export default function IdeaDetails() {
                             <div className="bg-white p-3 rounded">
                               <h4 className="text-xs font-semibold mb-1">Channels & Revenue</h4>
                               <div className="text-sm text-blue-900">{idea.formattedFile.channels_and_revenue}</div>
+                            </div>
+                          )}
+
+                          {idea.formattedFile.operations_and_team && (
+                            <div className="bg-white p-3 rounded">
+                              <h4 className="text-xs font-semibold mb-1">Operations & Team</h4>
+                              <div className="text-sm text-blue-900">{idea.formattedFile.operations_and_team}</div>
+                            </div>
+                          )}
+
+                          {idea.formattedFile.traction_and_funding && (
+                            <div className="bg-white p-3 rounded">
+                              <h4 className="text-xs font-semibold mb-1">Traction & Funding</h4>
+                              <div className="text-sm text-blue-900">{idea.formattedFile.traction_and_funding}</div>
+                            </div>
+                          )}
+
+                          {idea.formattedFile.risks_and_mitigation && (
+                            <div className="bg-white p-3 rounded">
+                              <h4 className="text-xs font-semibold mb-1">Risks & Mitigation</h4>
+                              <div className="text-sm text-blue-900">{idea.formattedFile.risks_and_mitigation}</div>
+                            </div>
+                          )}
+
+                          {idea.formattedFile.social_and_environmental_impact && (
+                            <div className="bg-white p-3 rounded">
+                              <h4 className="text-xs font-semibold mb-1">Social & Environmental Impact</h4>
+                              <div className="text-sm text-blue-900">{idea.formattedFile.social_and_environmental_impact}</div>
                             </div>
                           )}
                         </div>
@@ -522,30 +558,9 @@ export default function IdeaDetails() {
             )}
           </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Quick Stats</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Files Uploaded</span>
-                  <span className="font-semibold">{idea.rawFiles?.length ?? 0}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Comments</span>
-                  <span className="font-semibold">{idea.comments?.length ?? 0}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Mentor Score</span>
-                  <span className="font-semibold text-blue-600">{idea.mentorRemarks.Score}/10</span>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          {/* Sidebar removed for full width layout */}
         </div>
       </div>
-    </div>
+
   )
 }
