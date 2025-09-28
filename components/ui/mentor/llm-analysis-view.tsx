@@ -133,13 +133,14 @@ export default function LLMAnalysisView({ analysis }: LLMAnalysisViewProps) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {(analysis.extracted_kpis || []).map((kpi, index) => (
-              <div key={index} className="p-3 bg-muted rounded-lg">
-                <p className="text-sm font-medium">{kpi}</p>
-              </div>
+          <div>
+          <h3 className="text-lg font-semibold mb-2">Extracted KPIs</h3>
+          <div className="flex flex-wrap gap-2">
+            {(analysis?.extracted_kpis || []).map((kpi, i) => (
+              <span key={i} className="px-3 py-1 bg-blue-50 text-blue-700 rounded text-sm">{kpi}</span>
             ))}
           </div>
+        </div>
         </CardContent>
       </Card>
     </div>
