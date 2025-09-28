@@ -15,7 +15,7 @@ export interface Idea {
   description: string
   tags: string[]
   rawFiles: FileData[]
-  formattedFile: Record<string, any>
+  formattedFile: {}
   feedback: Record<string, any>
   comments: Comment[] // Updated from string[] to Comment[]
   transcribe: Record<string, any>

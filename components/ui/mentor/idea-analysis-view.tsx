@@ -286,6 +286,8 @@ export default function IdeaAnalysisView({ idea, onBack }: IdeaAnalysisViewProps
     }
   }
 
+  console.log('Rendering IdeaAnalysisView with localIdea:', localIdea.formattedFile.student)
+
   // Fetch existing comments for this project on mount (and when project id changes)
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -431,9 +433,9 @@ export default function IdeaAnalysisView({ idea, onBack }: IdeaAnalysisViewProps
                   <CardTitle>Standard Overview</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {localIdea.overview?.formatedFile && (
+                  {localIdea.formattedFile && (
                     <div className="space-y-4">
-                      {Object.entries(localIdea.overview.formatedFile).map(([key, value]) => (
+                      {Object.entries(localIdea.formattedFile.student).map(([key, value]) => (
                         value && (
                           <div key={key}>
                             <h4 className="font-semibold mb-2 capitalize">{key.replace(/_/g, ' ')}</h4>

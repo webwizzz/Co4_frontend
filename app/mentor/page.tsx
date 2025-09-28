@@ -74,7 +74,7 @@ export default function MentorDashboard() {
             size: file.size,
             url: file.url
           })) || [],
-          formattedFile: project.formatedFile || {},
+          formattedFile: project.formatedFile.mentor|| {},
           feedback: project.feedback || {},
           comments: project.comments || [],
           transcribe: project.transcribe || {},
@@ -89,7 +89,7 @@ export default function MentorDashboard() {
             tags: project.overview.tags || project.tags || [],
             uploadedFiles: project.overview.uploadedFiles || project.uploadedFiles || [],
             transcribe: project.overview.transcribe || [],
-            formatedFile: project.overview.formatedFile || project.formatedFile || {}
+            formatedFile: project.overview.formatedFile.mentor || project.formatedFile || {}
           } : undefined,
           llmAnalysis: project.llmAnalysis,
           marketAnalysis: project.marketAnalysis,

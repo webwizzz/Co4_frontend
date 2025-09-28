@@ -243,6 +243,61 @@ export default function IdeaDetails() {
     return []
   }
 
+  // Normalize transcription content which may be string or array
+  const normalizeTranscribe = (raw: any): string[] => {
+    if (!raw) return []
+    if (typeof raw === 'string') return [raw]
+    if (Array.isArray(raw)) return raw.map((r) => String(r))
+    return [String(raw)]
+  }
+
+  // Download transcript as a .doc (simple HTML blob that Word can open)
+  const downloadAsWord = (title = 'transcript') => {
+    if (!idea) {
+      console.warn('No idea available for download')
+      return
+    }
+    const items = normalizeTranscribe(idea.transcribe)
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title></head><body><h2>${idea.name} - Transcript</h2>${items.map(p => `<p>${p.replace(/\n/g, '<br/>')}</p>`).join('')}</body></html>`
+    const blob = new Blob([html], { type: 'application/msword' })
+  const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${title.replace(/[^a-z0-9_-]/gi, '_')}_${idea.id}.doc`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+  }
+
+  // Open a print-friendly window with the transcript content and trigger print (user can save as PDF)
+  const downloadAsPDF = (title = 'transcript') => {
+    if (!idea) {
+      console.warn('No idea available for print')
+      return
+    }
+    const items = normalizeTranscribe(idea.transcribe)
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title><style>body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;margin:20px;color:#111}h2{color:#0b5cff}</style></head><body><h2>${idea.name} - Transcript</h2>${items.map(p => `<p style="margin-bottom:12px">${p.replace(/\n/g, '<br/>')}</p>`).join('')}</body></html>`
+    const win = window.open('', '_blank', 'noopener,noreferrer')
+    if (!win) {
+      alert('Unable to open print window. Please allow popups for this site to save as PDF.')
+      return
+    }
+    win.document.open()
+    win.document.write(html)
+    win.document.close()
+    // Give the window a moment to render then call print
+    setTimeout(() => {
+      try {
+        win.focus()
+        win.print()
+        // optionally close after print: win.close()
+      } catch (e) {
+        console.error('Print failed', e)
+      }
+    }, 400)
+  }
+
   if (!idea) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -348,7 +403,7 @@ export default function IdeaDetails() {
 
                   {idea.formattedFile && (
                     <div>
-                      <h3 className="font-semibold mb-2">AI-Generated Summary</h3>
+                      <h3 className="font-semibold mb-2">Structured Summary</h3>
                       <div className="bg-blue-50 p-4 rounded-lg overflow-y-auto">
                         {idea.formattedFile.title && (
                           <p className="text-sm text-blue-900 font-medium">{idea.formattedFile.title}</p>
@@ -434,12 +489,26 @@ export default function IdeaDetails() {
                   )}
 
                   {idea.transcribe && (
-                    <div>
-                      <h3 className="font-semibold mb-2">Transcription</h3>
-                      <div className="bg-gray-50 p-4 rounded-lg">
-                        <p className="text-sm text-gray-700 italic">"{idea.transcribe }</p>
+                    <ToggleSection title="Transcription">
+                      <div className="flex items-center justify-end gap-2 mb-3">
+                        <Button size="sm" variant="outline" onClick={() => downloadAsWord('transcript')}>
+                          Download as Word
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => downloadAsPDF('transcript')}>
+                          Download as PDF
+                        </Button>
                       </div>
-                    </div>
+
+                      <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                        {normalizeTranscribe(idea.transcribe).length ? (
+                          normalizeTranscribe(idea.transcribe).map((t, idx) => (
+                            <p key={idx} className="text-sm text-gray-700 italic">{t}</p>
+                          ))
+                        ) : (
+                          <p className="text-sm text-gray-500">No transcription available.</p>
+                        )}
+                      </div>
+                    </ToggleSection>
                   )}
                 </CardContent>
               </Card>
