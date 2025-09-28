@@ -1,15 +1,13 @@
 "use client"
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { ArrowLeft, Calendar, FileText, MessageSquare } from "lucide-react"
-import type { Student, Idea } from "@/types/mentor"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import type { Idea, Student } from "@/types/mentor"
 
 interface StudentIdeasViewProps {
   student: Student
   ideas: Idea[]
-  onBack: () => void
+  onBack?: () => void
   onIdeaClick: (idea: Idea) => void
 }
 
@@ -64,10 +62,6 @@ export default function StudentIdeasView({ student, ideas, onBack, onIdeaClick }
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <Button variant="ghost" onClick={onBack} className="mb-4">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
-          </Button>
           <h1 className="text-3xl font-bold text-foreground mb-2">{student.name}'s Ideas</h1>
           <p className="text-muted-foreground">
             {student.department} • Year {student.year}
