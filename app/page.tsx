@@ -15,6 +15,12 @@ export default function Home() {
         if (role === "student") {
           router.replace("/student")
           return
+        } else if (role === "mentor") {
+          router.replace("/mentor")
+          return
+        } else if (role === "admin") {
+          router.replace("/admin")
+          return
         }
 
         // default fallback for other roles

@@ -164,6 +164,8 @@ export default function IdeaDetails() {
   const [idea, setIdea] = useState<IdeaData | null>(null)
   const [activeTab, setActiveTab] = useState<'overview' | 'files' | 'feedback' | 'mentor'>('overview')
   const [newComment, setNewComment] = useState('')
+  const [feedbackLoading, setFeedbackLoading] = useState(false)
+  const [feedbackError, setFeedbackError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!projectId) return
@@ -191,6 +193,55 @@ export default function IdeaDetails() {
 
     fetchProject()
   }, [projectId])
+
+  // Helper to fetch feedback for a given project id (or fallback to idea.id)
+  async function fetchFeedbackForProject(pid?: string) {
+    const idToUse = pid || projectId || idea?.id
+    console.log('Fetching feedback for project id:', idToUse)
+    
+    if (!idToUse) {
+      setFeedbackError('No project id available to fetch feedback')
+      return
+    }
+
+    try {
+      setFeedbackError(null)
+      setFeedbackLoading(true)
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+      const res = await fetch(`http://localhost:8000/api/student/feedback/${idToUse}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      })
+      if (!res.ok) {
+        const txt = await res.text()
+        throw new Error(txt || `Failed to fetch feedback: ${res.status}`)
+      }
+      const data = await res.json()
+      const fb = data.feedback ?? data
+      setIdea(prev => prev ? { ...prev, feedback: fb } : prev)
+    } catch (e: any) {
+      console.error('Error fetching feedback:', e)
+      setFeedbackError(e?.message || String(e))
+    } finally {
+      setFeedbackLoading(false)
+    }
+  }
+
+  // Normalize mentor comments which may be an array of strings or a JSON string
+  const normalizeMentorComments = (raw: any): { id: string; text: string }[] => {
+    if (!raw) return []
+    if (typeof raw === 'string') {
+      try {
+        const parsed = JSON.parse(raw)
+        return normalizeMentorComments(parsed)
+      } catch (e) {
+        return [{ id: `m_${Date.now()}`, text: raw }]
+      }
+    }
+    if (Array.isArray(raw)) {
+      return raw.map((item: any, idx: number) => ({ id: `m_${idx}_${Date.now()}`, text: String(item) }))
+    }
+    return []
+  }
 
   if (!idea) {
     return (
@@ -442,6 +493,15 @@ export default function IdeaDetails() {
             {activeTab === 'feedback' && (
               <Card>
                 <CardContent className="space-y-4 mt-2">
+                  {/* Show Get Feedback button when no feedback is present */}
+                  {!idea.feedback && (
+                    <div className="mb-4">
+                      <Button onClick={() => fetchFeedbackForProject()} disabled={feedbackLoading}>
+                        {feedbackLoading ? 'Fetching…' : 'Get Feedback'}
+                      </Button>
+                      {feedbackError && <div className="text-sm text-red-600 mt-2">{feedbackError}</div>}
+                    </div>
+                  )}
                   <div className="p-4 bg-gray-50 rounded-lg">
                     <div className="flex items-center justify-between">
                       <div>
@@ -551,6 +611,23 @@ export default function IdeaDetails() {
                       <div className="text-sm text-gray-600 mt-1">Assessment</div>
                     </div>
                   </div>
+
+                    {/* Mentor comments (may come as array of strings) */}
+                    <div className="mt-4">
+                      <h4 className="text-sm font-semibold mb-2">Mentor Comments</h4>
+                      <div className="space-y-2">
+                        {normalizeMentorComments(idea.comments).length > 0 ? (
+                          normalizeMentorComments(idea.comments).map((c) => (
+                            <div key={c.id} className="p-3 bg-white border rounded-lg">
+                              <div className="text-sm text-gray-800">{c.text}</div>
+                              <div className="text-xs text-gray-500 mt-1">Mentor</div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-sm text-gray-500">No mentor comments yet.</div>
+                        )}
+                      </div>
+                    </div>
 
                   
                 </CardContent>

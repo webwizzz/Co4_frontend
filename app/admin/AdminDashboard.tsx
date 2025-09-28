@@ -1,52 +1,98 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Sidebar from "../components/sidebar";
 import Mentors from "./Mentors";
-import Students from "./Students";
 import AssignedMentors from "./AssignedMentors";
 import PotentialIdeas from "./PotentialIdeas";
 import StudentsIdeas from "./Studentsideas";
-import { mentors, students, ideas } from "./Data";
+import { ideas, students as dummyStudents, mentors as dummyMentors } from "./Data";
 
-const reports = {
-	Best: students.filter((u) => u.report === "Best").map((s) => ({ name: s.name, ideas })),
-	Mediocre: students.filter((u) => u.report === "Mediocre").map((s) => ({ name: s.name, ideas: ideas.slice(0, 2) })),
-	Low: students.filter((u) => u.report === "Low").map((s) => ({ name: s.name, ideas: [] })),
-};
+// reports will be computed from fetched students when available
 
-const StudentDashboard: React.FC = () => (
-	<section className="mb-8">
-		<h2 className="text-2xl font-bold text-blue-800 mb-6 text-center">
-			Students
-		</h2>
-		<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-			{students.map((student) => (
-				<div
-					key={student.id}
-					className="rounded-2xl shadow bg-white border border-blue-200 p-6 flex flex-col gap-2"
-				>
-					<div className="font-semibold text-blue-800 text-lg mb-1">
-						{student.name}
-					</div>
-					<div className="text-sm text-gray-700 mb-1">
-						Status: {student.status}
-					</div>
-					<div className="text-xs text-gray-500 mb-1">
-						Mentor: {student.assignedMentor}
-					</div>
-					<div className="text-xs text-gray-500 mb-1">
-						Report: {student.report}
-					</div>
-				</div>
-			))}
-		</div>
-	</section>
-);
+const StudentDashboard: React.FC<{ students: any[]; loading: boolean }> = ({ students, loading }) => (
+  <section className="mb-8">
+    <h2 className="text-2xl font-bold text-blue-800 mb-6 text-center">Students</h2>
+    {loading ? (
+      <div className="text-center py-8">Loading students…</div>
+    ) : (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {students.map((student) => (
+          <div
+            key={student.id}
+            className="rounded-2xl shadow bg-white border border-blue-200 p-6 flex flex-col gap-2"
+          >
+            <div className="font-semibold text-blue-800 text-lg mb-1">{student.name}</div>
+            <div className="text-sm text-gray-700 mb-1">Status: {student.status}</div>
+            <div className="text-sm text-gray-700 mb-1">Email: {student.email}</div>
+          </div>
+        ))}
+      </div>
+    )}
+  </section>
+)
 
 export const AdminDashboard: React.FC = () => {
-	const [section, setSection] = useState<string>("mentors");
-	const [selectedStudent, setSelectedStudent] = useState<any>(null);
+		const [section, setSection] = useState<string>("mentors");
+		const [selectedStudent, setSelectedStudent] = useState<any>(null);
+
+		const [students, setStudents] = useState<any[]>([])
+		const [mentors, setMentors] = useState<any[]>([])
+		const [loading, setLoading] = useState(true)
+		const [error, setError] = useState<string | null>(null)
+
+		useEffect(() => {
+			let mounted = true
+			const load = async () => {
+				try {
+					setLoading(true)
+					setError(null)
+
+					const [studentsRes, mentorsRes] = await Promise.all([
+						fetch('http://localhost:8000/api/admin/students'),
+						fetch('http://localhost:8000/api/admin/mentors'),
+					])
+
+					if (!studentsRes.ok) throw new Error('Failed to fetch students')
+					if (!mentorsRes.ok) throw new Error('Failed to fetch mentors')
+
+					const studentsJson = await studentsRes.json()
+					const mentorsJson = await mentorsRes.json()
+
+					// Map backend shape to UI shape used in this file
+					const studentsMapped = (studentsJson.students || []).map((s: any) => ({
+						id: s._id,
+						name: s.name,
+						email: s.email,
+						status: s.status || 'Active',
+						assignedMentor: s.assignedMentor || '',
+						report: s.report || 'Unknown',
+					}))
+
+					const mentorsMapped = (mentorsJson.mentors || []).map((m: any, idx: number) => ({
+						id: m._id || idx,
+						name: m.name,
+						status: m.status || 'Active',
+						expertise: m.expertise || '',
+						email: m.email,
+						studentsCount: m.studentsCount || 0,
+					}))
+
+					if (mounted) {
+						setStudents(studentsMapped.length ? studentsMapped : dummyStudents)
+						setMentors(mentorsMapped.length ? mentorsMapped : dummyMentors)
+					}
+				} catch (e: any) {
+					console.error(e)
+					if (mounted) setError(e?.message || String(e))
+				} finally {
+					if (mounted) setLoading(false)
+				}
+			}
+
+			load()
+			return () => { mounted = false }
+		}, [])
 
 	return (
 		<div className="flex min-h-screen">
@@ -61,7 +107,7 @@ export const AdminDashboard: React.FC = () => {
 					Admin Dashboard
 				</h1>
 				{section === "mentors" && <Mentors mentors={mentors} />}
-				{section === "students" && !selectedStudent && <StudentDashboard />}
+				{section === "students" && !selectedStudent && <StudentDashboard students={students} loading={loading} />}
 				{section === "students" && selectedStudent && (
 					<StudentsIdeas
 						studentName={selectedStudent.name}
@@ -71,7 +117,8 @@ export const AdminDashboard: React.FC = () => {
 				{section === "assigned-mentors" && (
 					<AssignedMentors students={students} />
 				)}
-				{section === "student-reports" && <PotentialIdeas reports={reports} />}
+				{section === "student-reports" && <PotentialIdeas reports={{}} />}
+				{error && <div className="text-sm text-red-600 mt-4">{error}</div>}
 			</main>
 		</div>
 	);
