@@ -21,6 +21,7 @@ export default function CommentsSection({ comments, onAddComment }: CommentsSect
 
   const handleSubmit = () => {
     if (newComment.trim()) {
+      console.log("Submitting comment from UI:", { text: newComment.trim(), isVisible });
       onAddComment(newComment.trim(), isVisible)
       setNewComment("")
     }
@@ -85,7 +86,18 @@ export default function CommentsSection({ comments, onAddComment }: CommentsSect
               .map((comment) => (
                 <div key={comment.id} className="p-4 border rounded-lg space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">{formatTimestamp(comment.timestamp)}</span>
+                    <div>
+                      {comment.author && (
+                        <span className="text-xs font-medium mr-2">{comment.author}</span>
+                      )}
+                      <span className="text-xs text-muted-foreground">{formatTimestamp(comment.timestamp)}</span>
+                    </div>
+                    {comment.isVisible === false && (
+                      <Badge variant="outline" className="flex items-center">
+                        <EyeOff className="h-3 w-3 mr-1" />
+                        <span className="text-xs">Private</span>
+                      </Badge>
+                    )}
                   </div>
                   <p className="text-sm leading-relaxed">{comment.text}</p>
                 </div>

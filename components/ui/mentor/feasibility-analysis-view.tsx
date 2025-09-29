@@ -20,7 +20,7 @@ interface BackendFeasibilityPayload {
     funding_readiness_basis?: string
     funding_readiness_score?: number
   }
-  kpis?: string[]
+  news_summary?: string
 }
 
 interface FeasibilityAnalysisViewProps {
@@ -38,7 +38,7 @@ export default function FeasibilityAnalysisView({ analysis }: FeasibilityAnalysi
   const techSrc = isBackendShape(payload) ? payload.technical_feasibility || {} : { technical_feasibility_feedback: (payload as FeasibilityAnalysis).technicalFeasibility?.requiredTechnology?.join(', '), technical_feasibility_basis: (payload as FeasibilityAnalysis).technicalFeasibility?.requiredTechnology?.join(', ') }
   const finSrc = isBackendShape(payload) ? payload.financial_feasibility || {} : { financial_feasibility_feedback: (payload as FeasibilityAnalysis).financialFeasibility?.revenueProjections?.year1?.toString?.(), financial_feasibility_basis: (payload as FeasibilityAnalysis).financialFeasibility?.fundingNeeds?.sources?.join(', '), value_and_model_score: (payload as FeasibilityAnalysis).financialFeasibility ? Math.round(((payload as FeasibilityAnalysis).financialFeasibility.revenueProjections.year1 || 0) / 100000) : undefined, value_and_model_basis: undefined, funding_readiness_basis: undefined, funding_readiness_score: undefined }
 
-  const kpis: string[] = isBackendShape(payload) ? (payload.kpis || []) : []
+  const news_summary: string = isBackendShape(payload) ? (payload.news_summary || []) : []
 
   return (
     <div className="space-y-8">
@@ -108,13 +108,11 @@ export default function FeasibilityAnalysisView({ analysis }: FeasibilityAnalysi
       {/* KPIs */}
       <Card>
         <CardHeader>
-          <CardTitle>Key Performance Indicators</CardTitle>
+          <CardTitle>News Summary</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            {kpis.map((kpi: string, index: number) => (
-              <p key={index} className="text-sm">• {kpi}</p>
-            ))}
+            {news_summary}
           </div>
         </CardContent>
       </Card>

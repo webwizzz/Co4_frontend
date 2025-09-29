@@ -97,6 +97,9 @@ export interface Comment {
   id: string
   text: string
   timestamp: Date
+  author?: string
+  authorRole?: string
+  isVisible?: boolean
 }
 
 export interface FeasibilityAnalysis {

@@ -74,7 +74,7 @@ export default function MentorDashboard() {
             size: file.size,
             url: file.url
           })) || [],
-          formattedFile: project.formatedFile.mentor|| {},
+          formattedFile: project.formatedFile|| {},
           feedback: project.feedback || {},
           comments: project.comments || [],
           transcribe: project.transcribe || {},

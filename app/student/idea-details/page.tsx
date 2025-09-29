@@ -166,6 +166,23 @@ export default function IdeaDetails() {
   const [newComment, setNewComment] = useState('')
   const [feedbackLoading, setFeedbackLoading] = useState(false)
   const [feedbackError, setFeedbackError] = useState<string | null>(null)
+  
+  // Translation related states
+  const [showTranslationModal, setShowTranslationModal] = useState(false)
+  const [selectedLanguage, setSelectedLanguage] = useState<string>('')
+  const [translatedContent, setTranslatedContent] = useState<any>(null)
+  const [translationLoading, setTranslationLoading] = useState(false)
+  const [translationError, setTranslationError] = useState<string | null>(null)
+  
+  // Available languages for translation
+  const availableLanguages = [
+    { value: 'hindi', label: 'Hindi' },
+    { value: 'marathi', label: 'Marathi' },
+    { value: 'gujarati', label: 'Gujarati' },
+    { value: 'odia', label: 'Odia' },
+    { value: 'bengali', label: 'Bengali' },
+    { value: 'tamil', label: 'Tamil' }
+  ]
 
   useEffect(() => {
     if (!projectId) return
@@ -320,7 +337,51 @@ export default function IdeaDetails() {
     return fileType || 'other'
   }
 
-  const fileType = getFileType(idea.rawFiles[0])
+  // Handle translation request
+  const handleTranslate = async () => {
+    if (!selectedLanguage || !idea?.formattedFile) {
+      setTranslationError('Please select a language and ensure idea data is loaded');
+      return;
+    }
+
+    try {
+      setTranslationLoading(true);
+      setTranslationError(null);
+      
+      const response = await fetch('http://127.0.0.1:7000/translate-structured-output', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          language: selectedLanguage,
+          structured_output: idea.formattedFile
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Translation failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Translation response:', data);
+      setTranslatedContent(data);
+      setShowTranslationModal(true);
+    } catch (error: any) {
+      console.error('Translation error:', error);
+      setTranslationError(error?.message || 'Failed to translate content');
+    } finally {
+      setTranslationLoading(false);
+    }
+  };
+
+  // Close translation modal
+  const closeTranslationModal = () => {
+    setShowTranslationModal(false);
+    setTranslatedContent(null);
+  };
+
+  const fileType = getFileType(idea?.rawFiles?.[0] || { name: '' })
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 w-screen">
@@ -403,7 +464,30 @@ export default function IdeaDetails() {
 
                   {idea.formattedFile && (
                     <div>
-                      <h3 className="font-semibold mb-2">Structured Summary</h3>
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="font-semibold">Structured Summary</h3>
+                        <div className="flex items-center gap-2">
+                          <select 
+                            className="text-sm border rounded p-1"
+                            value={selectedLanguage}
+                            onChange={(e) => setSelectedLanguage(e.target.value)}
+                          >
+                            <option value="">Translate to...</option>
+                            {availableLanguages.map(lang => (
+                              <option key={lang.value} value={lang.value}>{lang.label}</option>
+                            ))}
+                          </select>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            disabled={!selectedLanguage || translationLoading}
+                            onClick={handleTranslate}
+                          >
+                            {translationLoading ? 'Translating...' : 'Translate'}
+                          </Button>
+                        </div>
+                      </div>
+                      {translationError && <p className="text-xs text-red-600 mb-2">{translationError}</p>}
                       <div className="bg-blue-50 p-4 rounded-lg overflow-y-auto">
                         {idea.formattedFile.title && (
                           <p className="text-sm text-blue-900 font-medium">{idea.formattedFile.title}</p>
@@ -706,7 +790,44 @@ export default function IdeaDetails() {
 
           {/* Sidebar removed for full width layout */}
         </div>
-      </div>
 
+      {/* Translation Modal */}
+      {showTranslationModal && translatedContent && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-hidden">
+            <div className="p-4 border-b sticky top-0 bg-white z-10 flex justify-between items-center">
+              <h3 className="font-semibold text-lg">
+                Translated Content ({translatedContent.language.charAt(0).toUpperCase() + translatedContent.language.slice(1)})
+              </h3>
+              <Button variant="ghost" size="sm" onClick={closeTranslationModal}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                  <path d="M18 6 6 18"></path><path d="m6 6 12 12"></path>
+                </svg>
+              </Button>
+            </div>
+            <div className="p-6 overflow-auto max-h-[calc(90vh-60px)]">
+              <div className="space-y-4">
+                {Object.entries(translatedContent.translated_output).map(([key, value]) => {
+                  // Skip null/undefined values
+                  if (value === null || value === undefined) return null;
+                  
+                  return (
+                    <div key={key} className="border-b pb-3">
+                      <h4 className="font-medium capitalize text-gray-700 mb-1">{key.replace(/_/g, ' ')}</h4>
+                      <div className="whitespace-pre-wrap text-sm">
+                        {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="p-4 border-t bg-gray-50 flex justify-end">
+              <Button variant="outline" onClick={closeTranslationModal}>Close</Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }

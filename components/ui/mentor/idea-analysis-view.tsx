@@ -32,12 +32,21 @@ export default function IdeaAnalysisView({ idea, onBack }: IdeaAnalysisViewProps
         return normalizeComments(parsed)
       } catch (e) {
         // treat as single-string comment
-        return [{ id: `c${Date.now()}`, text: comments, timestamp: new Date() } as Comment]
+        return [{ 
+          id: `c${Date.now()}`, 
+          text: comments, 
+          timestamp: new Date(),
+          author: "System",
+          authorRole: "system",
+          isVisible: true 
+        } as Comment]
       }
     }
 
     if (!Array.isArray(comments)) return [] as Comment[]
 
+    console.log("Normalizing comments array:", comments);
+    
     return comments.map((c: any, idx: number) => {
       // If the item is a plain string, convert to a Comment with defaults
       if (typeof c === "string") {
@@ -52,14 +61,17 @@ export default function IdeaAnalysisView({ idea, onBack }: IdeaAnalysisViewProps
       }
 
       // If it's already an object, normalize missing fields
-      return {
+      const normalizedComment = {
         id: c.id || `c_obj_${idx}_${Date.now()}`,
         text: c.text || String(c),
         author: c.author || c.name || "Anonymous",
         authorRole: c.authorRole || c.role || "mentor",
         timestamp: c && c.timestamp ? new Date(c.timestamp) : new Date(),
         isVisible: typeof c.isVisible === "boolean" ? c.isVisible : true,
-      } as Comment
+      } as Comment;
+      
+      console.log("Normalized comment:", normalizedComment);
+      return normalizedComment;
     }) as Comment[]
   }
 
@@ -89,45 +101,62 @@ export default function IdeaAnalysisView({ idea, onBack }: IdeaAnalysisViewProps
   // Access marketAnalysis safely since it's optional
   const marketAnalysis = localIdea.marketAnalysis || {}
 
-  const handleAddComment = (text: string, isVisible: boolean) => {
+const handleAddComment = (text: string, isVisible: boolean) => {
     // UI-level temporary state handled by caller; perform API POST to create comment
     // Show optimistic UI only after successful response from backend
     ;(async () => {
       try {
         setAnalysisError(null)
         // disable button in UI by returning a Promise; the caller can also manage its own loading
-        const mentorIdFromStorage = typeof window !== "undefined" ? localStorage.getItem("mentorId") || "" : ""
+        const mentorIdFromStorage = typeof window !== 'undefined' ? (localStorage.getItem('mentorId') || '') : ''
         const payload = {
           projectId: localIdea.id,
           comment: text,
+          isVisible: isVisible
         }
+        
+        console.log("Submitting comment payload:", payload)
 
         // Provide basic feedback via console and UI error state
-        const res = await fetch("http://localhost:8000/api/mentor/comments", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+        const res = await fetch('http://localhost:8000/api/mentor/comments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         })
+        
+        console.log("Comment submission response status:", res.status);
 
         if (!res.ok) {
           const body = await res.text()
-          throw new Error(body || "Failed to create comment")
+          console.error(`API error (${res.status}):`, body);
+          throw new Error(body || `Failed to create comment: ${res.status}`)
         }
 
         const data = await res.json()
-        console.log("Comment API response:", data)
+        console.log('Comment API response:', data)
 
         // Build comment object to insert into localIdea.comments
         const returned = data.comment || {}
         const createdComment: Comment = {
           id: `c${Date.now()}`,
           text: returned.text || text,
+          author: "Mentor",
+          authorRole: "mentor", 
           timestamp: returned.timestamp ? new Date(returned.timestamp) : new Date(),
+          isVisible: isVisible
         }
-
-        setLocalIdea((prev) => ({ ...prev, comments: [...(prev.comments || []), createdComment] }))
+        
+        console.log("Adding comment to state:", createdComment)
+        setLocalIdea(prev => {
+          const newState = { 
+            ...prev, 
+            comments: [...(prev.comments || []), createdComment] 
+          };
+          console.log("Updated comments state:", newState.comments);
+          return newState;
+        })
       } catch (err: any) {
-        console.error("Error adding comment:", err)
+        console.error('Error adding comment:', err)
         setAnalysisError(err?.message || String(err))
       }
     })()
@@ -304,7 +333,7 @@ export default function IdeaAnalysisView({ idea, onBack }: IdeaAnalysisViewProps
     }
   }
 
-  console.log('Rendering IdeaAnalysisView with localIdea:', localIdea.formattedFile.student)
+  console.log('Rendering IdeaAnalysisView with localIdea:', localIdea.formattedFile)
 
   // Fetch existing comments for this project on mount (and when project id changes)
   useEffect(() => {
@@ -316,12 +345,13 @@ export default function IdeaAnalysisView({ idea, onBack }: IdeaAnalysisViewProps
       try {
         setCommentsLoading(true)
         const res = await fetch(`http://localhost:8000/api/mentor/comments/${localIdea.id}`)
+        console.log("Response:", res)
         if (!res.ok) {
-          const text = await res.text()
-          throw new Error(text || `Failed to fetch comments: ${res.status}`)
+          const errorText = await res.text()
+          throw new Error(errorText || `Failed to fetch comments: ${res.status}`)
         }
         const data = await res.json()
-        console.log(data.comments)
+        console.log("Comments data:", data)
         let raw = data?.comments || []
         if (typeof raw === "string") {
           try {
@@ -360,10 +390,22 @@ export default function IdeaAnalysisView({ idea, onBack }: IdeaAnalysisViewProps
 
   return (
     <div className="min-h-screen bg-background p-6">
-      <div className="max-w-7xl mx-auto">
+      {analysisError && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 relative" role="alert">
+          <strong className="font-bold mr-1">Error:</strong>
+          <span className="block sm:inline">{analysisError}</span>
+          <button 
+            className="absolute top-0 right-0 mt-3 mr-4"
+            onClick={() => setAnalysisError(null)}
+          >
+            <span className="text-xl">&times;</span>
+          </button>
+        </div>
+      )}
+      <div className="min-w-full mx-auto">
         {/* Stat cards: Score, LLM, Feasibility, Potential */}
         <motion.section
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12"
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25 }}
@@ -400,18 +442,7 @@ export default function IdeaAnalysisView({ idea, onBack }: IdeaAnalysisViewProps
             <span className="text-2xl font-normal text-blue-700 dark:text-blue-200">/10</span>
           </motion.div>
 
-          {/* 2. LLM Analysis Rating */}
-          <motion.div
-            whileHover={{ y: -4, scale: 1.025 }}
-            whileTap={{ scale: 0.99 }}
-            className="rounded-2xl bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 ring-2 ring-purple-200 dark:ring-purple-800 p-8 min-h-[180px] flex flex-col items-center justify-center shadow-lg"
-          >
-            <div className="text-lg text-purple-700 dark:text-purple-200 font-semibold mb-2">LLM Rating</div>
-            <div className="text-base text-purple-800 dark:text-purple-300 mb-1">Overall Confidence</div>
-            <div className="mt-1 text-6xl font-extrabold tabular-nums text-purple-700 dark:text-purple-200">
-              {localIdea.llmAnalysis?.overall_confidence !== undefined ? `${localIdea.llmAnalysis.overall_confidence}/10` : '—'}
-            </div>
-          </motion.div>
+          
 
           {/* 3. SWAT Card */}
           <motion.div
@@ -644,7 +675,13 @@ export default function IdeaAnalysisView({ idea, onBack }: IdeaAnalysisViewProps
 
           <TabsContent value="mentor-comment" className="space-y-6">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}>
-              <CommentsSection comments={localIdea.comments || []} onAddComment={handleAddComment} />
+              {commentsLoading ? (
+                <div className="flex justify-center items-center p-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              ) : (
+                <CommentsSection comments={localIdea.comments || []} onAddComment={handleAddComment} />
+              )}
             </motion.div>
           </TabsContent>
         </Tabs>

@@ -63,9 +63,7 @@ export default function StudentIdeasView({ student, ideas, onBack, onIdeaClick }
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-2">{student.name}'s Ideas</h1>
-          <p className="text-muted-foreground">
-            {student.department} • Year {student.year}
-          </p>
+          
         </div>
 
         {/* Ideas Grid */}
